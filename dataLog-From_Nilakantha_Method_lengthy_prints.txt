@@ -1,0 +1,19 @@
+
+
+Below rick are the 23 verified digits we have calculated via Nilakantha using precision of 128 and iterations of 30000000: 
+3.1415926535897932384626
+
+Below rick are the 23 verified digits we have calculated via Nilakantha using precision of 128 and iterations of 30000000: 
+3.1415926535897932384626
+
+Below rick are the 23 verified digits we have calculated via Nilakantha using precision of 128 and iterations of 30000000: 
+3.1415926535897932384626
+
+Below rick are the 23 verified digits we have calculated via Nilakantha using precision of 128 and iterations of 30000000: 
+3.1415926535897932384626
+
+Below rick are the 23 verified digits we have calculated via Nilakantha using precision of 128 and iterations of 30000000: 
+3.1415926535897932384626
+
+Below rick are the 23 verified digits we have calculated via Nilakantha using precision of 128 and iterations of 30000000: 
+3.1415926535897932384626
