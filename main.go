@@ -38,7 +38,7 @@ func main() {
 	terminalDisplay.SetText("Terminal Output:\n\nWaiting for calculation...")
 
 	// Button only being used as a title-label for nifty_scoreBoard
-	calcButton := widget.NewButton("Calculate Pi on a ScoreBoard", func() {
+	calcButton := widget.NewButton("Also try our special menu option: Calculate Pi on a ScoreBoard", func() {
 		updateOutput1("\n- * - * - that button does nothing - * - * -\n\n")
 	})
 
@@ -103,7 +103,7 @@ func main() {
 	JohnWallisBtn1 := NewColoredButton(
 	"John Wallis infinite series -- 40 billion iterations -- runs 5m30s\n" +
 		"π = 2 * ((2/1)*(2/3)) * ((4/3)*(4/5)) * ((6/5)*(6/7)) ...\n" +
-		"only manages to do 10 digits of Pi in well-over five minutes\n" +
+		"only manages to bake 10 digits of Pi in well-over five minutes\n" +
 		"an infinite series circa 1655    --- served here by Rick Woolley ---",
 		color.RGBA{110, 110, 255, 185}, 
 		
@@ -355,7 +355,7 @@ func main() {
 	GaussBtn1 := NewColoredButton(
 	"Gauss-Legendre -- C F Gauss, refined by Adrien-Marie Legendre\n" +
 		"π ≈ (aₙ + bₙ)² / (4 tₙ)\n" +
-		"only manages to do 10 digits of Pi in well-over five minutes\n" +
+		"only manages to make 10 digits of Pi in well-over five minutes\n" +
 		"an infinite series circa 1655    --- served here by Rick Woolley ---",
 		color.RGBA{100, 255, 100, 215},
 		
@@ -393,7 +393,7 @@ func main() {
 	
 	CustomSeriesBtn1 := NewColoredButton(
 	"Custom series -- I don't remember where it's from ... \n" +
-		"but it is very quick -- 4s gets us 9 digits of Pi\n" +
+		"but it is very quick -- 4s gets us 9 digits of sweet cherry Pi\n" +
 		"π = (4/1) - (4/3) + (4/5) - (4/7) + (4/9) - (4/11) + (4/13) - (4/15) ...",
 		color.RGBA{255, 120, 120, 215}, // Greenish for variety
 		
@@ -431,7 +431,7 @@ func main() {
 	 */
 	
 	GregoryLeibnizBtn1 := NewColoredButton(
-	"Gregory-Leibniz -- runs 20sec -- gives 10 digits of Pi\n" +
+	"Gregory-Leibniz -- runs 20sec -- serves up 10 digits of Pi\n" +
 		"James Gregory 1638–1675  Gottfried Wilhelm Leibniz 1646-1716\n" +
 		"π = 4 * ( 1 - 1/3 + 1/5 - 1/7 + 1/9 ...) ",
 		color.RGBA{110, 110, 255, 185},

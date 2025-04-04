@@ -40,7 +40,7 @@ func SetupRootsDemo(mgr *TrafficManager, radicalEntry, workEntry *widget.Entry) 
 			}
 			fmt.Printf(" ::: - Radical is set to: %d\n", radical) // debug
 			fmt.Printf(" ::: - Work Piece is set to: %d\n", workPiece) // debug
-			mgr.SetRadical(radical)
+			mgr.SetRadical(radical) // instead of passing these variables we have elected to try a little OOP 
 			mgr.SetWorkPiece(workPiece)
 			// mgr.SetCalculating(true) // ::: remove if we are not planning to use this
 			for _, btn := range buttons2 {
@@ -68,12 +68,10 @@ func xRootOfy() {
 	usingBigFloats = false
 	TimeOfStartFromTop := time.Now()
 
-	radical2or3 := mgr.GetRadical()
+	radical2or3 := mgr.GetRadical() // trying out some OOP here 
 	workPiece := mgr.GetWorkPiece()
 
-	radical2or3, workPiece = setPrecisionForSquareOrCubeRoot(mgr, radical2or3, workPiece, updateOutput2) // sets precision only, no actual need to digest and pass our inputs
-	mgr.SetRadical(radical2or3) // no need for these
-	mgr.SetWorkPiece(workPiece)
+	setPrecisionForSquareOrCubeRoot(radical2or3, workPiece) // sets precision only, basis is radical2or3 and workPiece
 
 	updateOutput2("\n\nBuilding table...\n")
 	buildPairsSlice(radical2or3)
@@ -86,7 +84,7 @@ func xRootOfy() {
 			updateOutput2("Calculation of a root aborted\n")
 			return
 		}
-		readPairsSlice(i, startBeforeCall, radical2or3, workPiece, updateOutput2)
+		readPairsSlice(i, startBeforeCall, radical2or3, workPiece)
 		handlePerfectSquaresAndCubes(TimeOfStartFromTop, radical2or3, workPiece, mgr)
 		if diffOfLarger == 0 || diffOfSmaller == 0 {
 			break // because we have a perfect square or cube
@@ -161,71 +159,66 @@ func xRootOfy() {
 	}
 }
 
-func readPairsSlice(i int, startBeforeCall time.Time, radical2or3, workPiece int, fyneFunc func(string)) {
+func readPairsSlice(i int, startBeforeCall time.Time, radical2or3, workPiece int) { // ::: - -
+	// each time that readPairsSlice is called we do two initial reads of pairsSlice prior to entering a loop in which four reads are done many many times ...
+	// ... these next two lines are the two initial reads (done using a passed index: i)
 	oneReadOfSmallerRoot := pairsSlice[i].root // Read a smaller PP and its root (just once) for each time readPairsSlice is called
-	oneReadOfSmallerPP := pairsSlice[i].product
+	oneReadOfSmallerPP := pairsSlice[i].product // pairsSlice is a slice of two-element structs, i.e., pairs 
 
-	for iter := 0; iter < 410000 && i < len(pairsSlice); iter++ { // go big, but not so big that you would read past the end of the pairsSlice
-		i++
-		largerPerfectProduct := pairsSlice[i].product // i has been incremented since the initial one-time read of oneReadOfSmallerPP
+	for iter := 0; iter < 410000 && i < len(pairsSlice); iter++ { // go big, '410,000', but not so big that we would read past the end of the pairsSlice
+		i++ // Note how we increment the passed index i here within the loop rather than in the for loop header ... 
+		// note also that the for loop's header (the for clause) only sets and increments the loop counter -- secret sauce is what that is. 
+		largerPerfectProduct := pairsSlice[i].product // i has been incremented since the initial 'one-time' read of oneReadOfSmallerPP ...
 
-		// ... and, keep incrementing the i until largerPerfectProduct is greater than (oneReadOfSmallerPP * workPiece)
-		if largerPerfectProduct > oneReadOfSmallerPP*workPiece { // For example: workPiece may be 11, 3.32*3.32.   Larger PP may be 49, 7*7.   Smaller oneReadPP may be 4, 2*2. ::: oneRead is 4
+		// ... and, we keep incrementing the i until largerPerfectProduct is greater than (oneReadOfSmallerPP * workPiece)
+		if largerPerfectProduct > oneReadOfSmallerPP * workPiece { // For example: workPiece may be 11: 3.32*3.32.   Larger PP may be 49: 7*7.   Smaller oneReadPP may be 4: 2*2. 
 
-			ProspectivePHitOnLargeSide := largerPerfectProduct // rename it, badly;
-			rootOfProspectivePHitOnLargeSide := pairsSlice[i].root // grab larger side's root
+			ProspectivePHitOnLargeSide := largerPerfectProduct // rename it, badly; ::: 3
+			rootOfProspectivePHitOnLargeSide := pairsSlice[i].root // grab larger side's root ::: 4
 
-			ProspectivePHitOnSmallerSide := pairsSlice[i-1].product
+			ProspectivePHitOnSmallerSide := pairsSlice[i-1].product // these are reads 5 & 6 (initial comprise 1&2, larger comprise 3&4) 
 			rootOfProspectivePHitOnSmallerSide := pairsSlice[i-1].root
 
 
-			// we next look at two roots (PHs) of two PPs. 
-			diffOfLarger = ProspectivePHitOnLargeSide - workPiece*oneReadOfSmallerPP // ::: PH_larger - (WP * _once)     7 - (11 * 4)
+			diffOfLarger = ProspectivePHitOnLargeSide - (workPiece * oneReadOfSmallerPP) // ::: PH_larger - (WP * _once)     7 - (11 * 4)
 			// What does it tell us if we find that the sum of one of the larger roots from the table : ProspectivePHitOnLargeSide
-			// and/plus the negative of another smaller root from the table (times our WP) turns out to be zero?
-
-
-			diffOfSmaller = workPiece*oneReadOfSmallerPP - ProspectivePHitOnSmallerSide // ::: (WP * _once) - PH_smaller    (11 * 4) - 
+			// 'plus' the negative of another smaller root from the table (times our WP) turns out to be zero?
+			diffOfSmaller = (workPiece * oneReadOfSmallerPP) - ProspectivePHitOnSmallerSide // ::: (WP * _once) - PH_smaller    (11 * 4) - 
 
 			if diffOfLarger == 0 {
-				fmt.Println(colorCyan, "\n The", radical2or3, "root of", workPiece, "is", colorGreen,
-					float64(rootOfProspectivePHitOnLargeSide)/float64(oneReadOfSmallerRoot), colorReset, "\n")
-				fyneFunc(fmt.Sprintf("\n The %d root of %d is %0.33f\n\n", radical2or3, workPiece, float64(rootOfProspectivePHitOnLargeSide)/float64(oneReadOfSmallerRoot)))
+				fmt.Println(colorCyan, "\n The", radical2or3, "root of", workPiece, "is", colorGreen, float64(rootOfProspectivePHitOnLargeSide)/float64(oneReadOfSmallerRoot), colorReset, "\n")
+				updateOutput2(fmt.Sprintf("\n The %d root of %d is %0.33f\n\n", radical2or3, workPiece, float64(rootOfProspectivePHitOnLargeSide)/float64(oneReadOfSmallerRoot)))
 
-				mathCbrtCheat = math.Cbrt(float64(workPiece))
+				mathSqrtCheat = math.Sqrt(float64(workPiece)) // ::: this line was initially missing, but me thinks it must belong here, as it mirrors what follows in the next if 
+				mathCbrtCheat = math.Cbrt(float64(workPiece)) // I cheated? Yea, a bit. But only in order to generate verbiage to print re a perfect root having been found
 				break
 			}
 			if diffOfSmaller == 0 {
-				fmt.Println(colorCyan, "\n The", radical2or3, "root of", workPiece, "is", colorGreen,
-					float64(rootOfProspectivePHitOnSmallerSide)/float64(oneReadOfSmallerRoot), colorReset, "\n")
-				fyneFunc(fmt.Sprintf("\n The %d root of %d is %0.33f\n\n", radical2or3, workPiece, float64(rootOfProspectivePHitOnSmallerSide)/float64(oneReadOfSmallerRoot)))
+				fmt.Println(colorCyan, "\n The", radical2or3, "root of", workPiece, "is", colorGreen, float64(rootOfProspectivePHitOnSmallerSide)/float64(oneReadOfSmallerRoot), colorReset, "\n")
+				updateOutput2(fmt.Sprintf("\n The %d root of %d is %0.33f\n\n", radical2or3, workPiece, float64(rootOfProspectivePHitOnSmallerSide)/float64(oneReadOfSmallerRoot)))
 
 				mathSqrtCheat = math.Sqrt(float64(workPiece)) // ::: I cheated? Yea, a bit. But only in order to generate verbiage to print re a perfect root having been found 
 				mathCbrtCheat = math.Cbrt(float64(workPiece))
 				break
 			}
-
+			
+			// 'large' element of a couplet: 
 			if diffOfLarger < precisionOfRoot {
-				result := float64(rootOfProspectivePHitOnLargeSide) / float64(oneReadOfSmallerRoot)
-				pdiff := float64(diffOfLarger) / float64(ProspectivePHitOnLargeSide)
-
-				sortedResults = append(sortedResults, Results{result: result, pdiff: pdiff})
-
-				fmt.Printf("Found large prospect at index %d: result=%f, diff=%d\n", i, result, diffOfLarger) // Debug
-				fyneFunc(fmt.Sprintf("Found large prospect at index %d: result=%f, diff=%d\n", i, result, diffOfLarger)) // Debug
-				// break
-				if diffOfLarger < 2 {break}
+				result := float64(rootOfProspectivePHitOnLargeSide) / float64(oneReadOfSmallerRoot) // :::    root/root
+				pdiff := float64(diffOfLarger) / float64(ProspectivePHitOnLargeSide) // :::                   diff/PP
+					sortedResults = append(sortedResults, Results{result: result, pdiff: pdiff}) // collect results into a slice that will eventually be sorted 
+				fmt.Printf("Found large prospect at index %d: result=%f, diff=%d\n", i, result, diffOfLarger) // Debug, ditto
+				updateOutput2(fmt.Sprintf("Found large prospect at index %d: result=%f, diff=%d\n", i, result, diffOfLarger)) // update, info
+				if diffOfLarger < 2 {break} // reconsider this later addition to the code base?
 			}
+			// 'small' element of a couplet: 
 			if diffOfSmaller < precisionOfRoot {
 				result := float64(rootOfProspectivePHitOnSmallerSide) / float64(oneReadOfSmallerRoot)
 				pdiff := float64(diffOfSmaller) / float64(ProspectivePHitOnSmallerSide)
-
-				sortedResults = append(sortedResults, Results{result: result, pdiff: pdiff})
-
+					sortedResults = append(sortedResults, Results{result: result, pdiff: pdiff}) // collect results into a slice that will eventually be sorted 
 				fmt.Printf("Found small prospect at index %d: result=%f, diff=%d\n", i, result, diffOfSmaller) // Debug
-				fyneFunc(fmt.Sprintf("Found small prospect at index %d: result=%f, diff=%d\n", i, result, diffOfSmaller)) // Debug
-				// break
-				if diffOfSmaller < 2 {break}
+				updateOutput2(fmt.Sprintf("Found small prospect at index %d: result=%f, diff=%d\n", i, result, diffOfSmaller)) // Debug
+				if diffOfSmaller < 2 {break} // reconsider this later addition to the code base?
 			}
 
 			// ::: we will be potentially duplicating Results struct -> slice 
@@ -234,20 +227,25 @@ func readPairsSlice(i int, startBeforeCall time.Time, radical2or3, workPiece int
 			if diffOfLarger < precisionOfRoot { // report the prospects, their differences, and the calculated result for the Sqrt or Cbrt
 				fmt.Println("small PP is", colorCyan, oneReadOfSmallerPP, colorReset, "and, slightly on the higher side of", workPiece,
 					"* that we found a PP of", colorCyan, ProspectivePHitOnLargeSide, colorReset, "a difference of", diffOfLarger)
-				fyneFunc(fmt.Sprintf("\nsmall PP is %d and, slightly on the higher side of %d * that we found a PP of %d a difference of %d\n", oneReadOfSmallerPP, workPiece, ProspectivePHitOnLargeSide, diffOfLarger))
+				updateOutput2(fmt.Sprintf("\nsmall PP is %d and, slightly on the higher side of %d * that we found a PP of %d a difference of %d\n", 
+					oneReadOfSmallerPP, workPiece, ProspectivePHitOnLargeSide, diffOfLarger))
 
 				fmt.Println("the ", radical2or3, " root of ", workPiece, " is calculated as ", colorGreen,
 					float64(rootOfProspectivePHitOnLargeSide)/float64(oneReadOfSmallerRoot), colorReset)
-				fyneFunc(fmt.Sprintf("\nthe %d root of %d is calculated as %0.6f \n", radical2or3, workPiece, float64(rootOfProspectivePHitOnLargeSide)/float64(oneReadOfSmallerRoot)))
+				updateOutput2(fmt.Sprintf("\nthe %d root of %d is calculated as %0.6f \n", 
+					radical2or3, workPiece, float64(rootOfProspectivePHitOnLargeSide)/float64(oneReadOfSmallerRoot)))
 
 				fmt.Printf("with pdiff of %0.4f \n", (float64(diffOfLarger)/float64(ProspectivePHitOnLargeSide))*100000)
-				fyneFunc(fmt.Sprintf("with pdiff of %0.4f \n", (float64(diffOfLarger)/float64(ProspectivePHitOnLargeSide))*100000))
+				updateOutput2(fmt.Sprintf("with pdiff of %0.4f \n", (float64(diffOfLarger)/float64(ProspectivePHitOnLargeSide))*100000))
+				
 				// save the result to an accumulator array so we can Fprint all such hits at the very end
 				// List_of_2_results_case18 = append(List_of_2_results_case18, float64(rootOfProspectivePHitOnLargeSide) / float64(oneReadOfSmallerRoot) )
 				// corresponding_diffs = append(corresponding_diffs, diffOfLarger)
 				// diffs_as_percent = append(diffs_as_percent, float64(diffOfLarger)/float64(ProspectivePHitOnLargeSide))
 
-				// in the next five lines we load (append) a record into/to the file (array) of Results
+				// ***** ^^^^ ****** the preceding was replaced with the following five lines *******************************************
+				
+				// in the next five lines we load (append) a record into/to the slice of Results
 				Result1 := Results{
 					result: float64(rootOfProspectivePHitOnLargeSide) / float64(oneReadOfSmallerRoot),
 					pdiff:  float64(diffOfLarger) / float64(ProspectivePHitOnLargeSide),
@@ -267,7 +265,7 @@ func readPairsSlice(i int, startBeforeCall time.Time, radical2or3, workPiece int
 				}
 				if elapsed2.Seconds() > Tim_win {
 					fmt.Println(elapsed2.Seconds(), "Seconds have elapsed ... working ...\n")
-					fyneFunc(fmt.Sprintf("\n%0.4f Seconds have elapsed ... working ...\n\n", elapsed2.Seconds()))
+					updateOutput2(fmt.Sprintf("\n%0.4f Seconds have elapsed ... working ...\n\n", elapsed2.Seconds()))
 				}
 			}
 
@@ -276,22 +274,25 @@ func readPairsSlice(i int, startBeforeCall time.Time, radical2or3, workPiece int
 			if diffOfSmaller < precisionOfRoot { // report the prospects, their differences, and the calculated result for the Sqrt or Cbrt
 				fmt.Println("small PP is", colorCyan, oneReadOfSmallerPP, colorReset, "and, slightly on the lesser side of", workPiece,
 					"* that we found a PP of", colorCyan, ProspectivePHitOnSmallerSide, colorReset, "a difference of", diffOfSmaller)
-				fyneFunc(fmt.Sprintf("\nsmall PP is %d and, slightly on the higher side of %d * that we found a PP of %d a difference of %d\n", oneReadOfSmallerPP, workPiece, ProspectivePHitOnSmallerSide, diffOfSmaller))
+				updateOutput2(fmt.Sprintf("\nsmall PP is %d and, slightly on the higher side of %d * that we found a PP of %d a difference of %d\n", 
+					oneReadOfSmallerPP, workPiece, ProspectivePHitOnSmallerSide, diffOfSmaller))
 
 				fmt.Println("the ", radical2or3, " root of ", workPiece, " is calculated as ", colorGreen,
 					float64(rootOfProspectivePHitOnSmallerSide)/float64(oneReadOfSmallerRoot), colorReset)
-				fyneFunc(fmt.Sprintf("\nthe %d root of %d is calculated as %0.6f \n", radical2or3, workPiece, float64(rootOfProspectivePHitOnSmallerSide)/float64(oneReadOfSmallerRoot)))
+				updateOutput2(fmt.Sprintf("\nthe %d root of %d is calculated as %0.6f \n", 
+					radical2or3, workPiece, float64(rootOfProspectivePHitOnSmallerSide)/float64(oneReadOfSmallerRoot)))
 
 				fmt.Printf("with pdiff of %0.4f \n", (float64(diffOfSmaller)/float64(ProspectivePHitOnSmallerSide))*100000)
-				fyneFunc(fmt.Sprintf("with pdiff of %0.4f \n", (float64(diffOfSmaller)/float64(ProspectivePHitOnSmallerSide))*100000))
+				updateOutput2(fmt.Sprintf("with pdiff of %0.4f \n", (float64(diffOfSmaller)/float64(ProspectivePHitOnSmallerSide))*100000))
 
 				// save the result to three accumulator arrays so we can Fprint all such hits, diffs, and p-diffs, at the very end of run
 				// List_of_2_results_case18 = append(List_of_2_results_case18, float64(rootOfProspectivePHitOnSmallerSide) / float64(oneReadOfSmallerRoot) )
 				// corresponding_diffs = append(corresponding_diffs, diffOfSmaller)
 				// diffs_as_percent = append(diffs_as_percent, float64(diffOfSmaller)/float64(ProspectivePHitOnSmallerSide))
-				// ***** ^^^^ ****** the preceeding was replaced with the following five lines *******************************************
+				
+				// ***** ^^^^ ****** the preceding was replaced with the following five lines *******************************************
 
-				// in the next five lines we load (append) a record into/to the file (array) of Results
+				// in the next five lines we load (append) a record into/to the slice of Results
 				Result1 := Results{
 					result: float64(rootOfProspectivePHitOnSmallerSide) / float64(oneReadOfSmallerRoot),
 					pdiff:  float64(diffOfSmaller) / float64(ProspectivePHitOnSmallerSide),
@@ -311,7 +312,7 @@ func readPairsSlice(i int, startBeforeCall time.Time, radical2or3, workPiece int
 				}
 				if elapsed2.Seconds() > Tim_win {
 					fmt.Println(elapsed2.Seconds(), "Seconds have elapsed ... working ...\n")
-					fyneFunc(fmt.Sprintf("\n%0.4f Seconds have elapsed ... working ...\n\n", elapsed2.Seconds()))
+					updateOutput2(fmt.Sprintf("\n%0.4f Seconds have elapsed ... working ...\n\n", elapsed2.Seconds()))
 				}
 			}
 			break
@@ -319,7 +320,7 @@ func readPairsSlice(i int, startBeforeCall time.Time, radical2or3, workPiece int
 	}
 }
 
-// handlePerfectSquaresAndCubes reports perfect squares/cubes to file and UI
+// handlePerfectSquaresAndCubes reports/logs perfect squares/cubes to file and UI
 func handlePerfectSquaresAndCubes(TimeOfStartFromTop time.Time, radical2or3, workPiece int, mgr *TrafficManager) {
 	if diffOfLarger == 0 || diffOfSmaller == 0 {
 		t_s1 := time.Now()
@@ -348,53 +349,61 @@ func handlePerfectSquaresAndCubes(TimeOfStartFromTop time.Time, radical2or3, wor
 }
 
 
-// setPrecisionForSquareOrCubeRoot adjusts precision based on radical and workPiece
-func setPrecisionForSquareOrCubeRoot(mgr *TrafficManager, radical2or3, workPiece int, fyneFunc func(string)) (int, int) {
-	if radical2or3 == 3 { // ::: setting the optimal precision this way is a crude kluge
-		if workPiece > 4 {
-			precisionOfRoot = 1700
-			fmt.Println("\n Default precision is 1700 \n")
-			fyneFunc(fmt.Sprintf("\n Default precision is 1700 \n"))
+// setPrecisionForSquareOrCubeRoot adjusts precision based on radical and workPiece  ::: setting the optimal precision in this way is a crude kluge
+func setPrecisionForSquareOrCubeRoot(radical2or3, workPiece int) { // ::: - -
+	//
+	// exhaustive trials have proven that these three precision levels are optimal for these special cases of doing cube roots ...
+		if radical2or3 == 3 { 
+			if workPiece > 4 { // unless overridden below, precision will be 1700 when doing all cube roots 
+				precisionOfRoot = 1700
+				fmt.Println("\n Default precision is 1700 \n")
+				updateOutput2(fmt.Sprintf("\n Default precision is 1700 \n"))
+			}
+			if workPiece == 2 || workPiece == 11 || workPiece == 17 { // ::: the logic expressed in this func is far more complex than is apparent at first glance
+				precisionOfRoot = 600
+				fmt.Println("\n resetting precision to 600 \n")
+				updateOutput2(fmt.Sprintf("\n resetting precision to 600 \n"))
+			}
+			if workPiece == 3 || workPiece == 4 || workPiece == 14 {
+				precisionOfRoot = 900
+				fmt.Println("\n resetting precision to 900 \n")
+				updateOutput2(fmt.Sprintf("\n resetting precision to 900 \n"))
+			}
 		}
-		if workPiece == 2 || workPiece == 11 || workPiece == 17 {
-			precisionOfRoot = 600
-			fmt.Println("\n resetting precision to 600 \n")
-			fyneFunc(fmt.Sprintf("\n resetting precision to 600 \n"))
-		}
-		if workPiece == 3 || workPiece == 4 || workPiece == 14 {
-			precisionOfRoot = 900
-			fmt.Println("\n resetting precision to 900 \n")
-			fyneFunc(fmt.Sprintf("\n resetting precision to 900 \n"))
-		}
-	}
+	// ... while a precision level of 4 has been found to be optimal for doing ALL square roots, ergo, this we now do
 	if radical2or3 == 2 {
-		precisionOfRoot = 4
+		precisionOfRoot = 4 // squares are so two-dimensional 
 	}
-	return radical2or3, workPiece
 }
 
-// Pairs A struct to contain two related whole numbers: an identity product (perfect square or cube), e.g. 49; and its root, which in that case would be 7 
+
+// build a table/slice of ::: perfect squares or cubes, depending on radical 2 or 3 
+func buildPairsSlice(radical2or3 int) { // ::: - -
+	pairsSlice = nil // Clear/reset the slice between runs
+	//
+	r := radical2or3
+		var identityProduct int // descriptive names
+		var sideLengthIsRoot = 2 // 2 being the smallest possible whole-number/perfect root, i.e., it's the square root of 4 & the cube root of 8 // I used to have this as root := 10 but I do not recall why : (how I had decided on 10?)
+	p := identityProduct // tight names, p:identityProduct
+	s := sideLengthIsRoot // ... s:sideLengthIsRoot
+	// 
+	for i := 0; i < 825000; i++ {
+		s++
+		if r == 3 {          // ::: perfect cubes for cube root
+			p = s * s * s
+		}
+		if r == 2 {          // ::: perfect squares for square root 
+			p = s * s
+		}
+		pairsSlice = append(pairsSlice, Pairs{ // stuff identityProduct:s and sideLengthIsRoot:s into pairsSlice (into the corresponding fields: product and root) 
+			product: p,
+			root:  s,
+		})
+	}
+}
+/* ::: and the struct for the pairs looks like this: 
 type Pairs struct {
 	product int
 	root int
 }
-
-// build a table of ::: perfect squares or cubes
-func buildPairsSlice(radical2or3 int) { // ::: - -
-	var identityProduct int
-	pairsSlice = nil // Clear/reset the slice between runs
-	root := 2 // Because; 2 is the smallest possible whole-number root, i.e., it's the square root of 4 and the cube root of 8 // I used to have this as root := 10 but I do not recall why : (how I had decided on 10?)
-	for i := 0; i < 825000; i++ {
-		root++
-		if radical2or3 == 3 {                   // ::: depending on passed radical 
-			identityProduct = root * root * root
-		}
-		if radical2or3 == 2 {
-			identityProduct = root * root
-		}
-		pairsSlice = append(pairsSlice, Pairs{
-			product: identityProduct,
-			root:  root,
-		})
-	}
-}
+ */

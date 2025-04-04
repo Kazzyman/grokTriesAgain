@@ -45,11 +45,16 @@ var (
 
 // from roots
 var (
-	pairsSlice []Pairs
+	pairsSlice []Pairs // a slice of two-element structs, i.e., pairs 
 	mathSqrtCheat            float64
 	mathCbrtCheat            float64
 	mgr             = NewTrafficManager(outputLabel2) // ::: - -
 )
+// Pairs A struct to contain two related whole numbers: an identity product (perfect square or cube), e.g. 49; and its root, which in that case would be 7 
+type Pairs struct {
+	product int
+	root int
+}
 
 
 var calculating bool
