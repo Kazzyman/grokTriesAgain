@@ -79,15 +79,15 @@ func main() {
 			currentDone = make(chan bool) // ::: New channel per run
 			updateOutput1("\nRunning ArchimedesBig...\n\n")
 			go func(done chan bool) { // ::: go func now takes an argument
-				defer func() {       // ::: new defer func with global calculating flag set 
-					calculating = false
-					updateOutput1("Calculation definitely finished; possibly aborted\n")
-				}()
+					defer func() {       // ::: new defer func with global calculating flag set 
+						calculating = false
+						updateOutput1("Calculation definitely finished; possibly aborted\n")
+					}()
 				ArchimedesBig(updateOutput1, done) // ::: func < - - - - - - - - - - - - - < -
-				calculating = false
-				for _, btn := range buttons1 {
-					btn.Enable()
-				}
+					calculating = false
+					for _, btn := range buttons1 {
+						btn.Enable()
+					}
 			}(currentDone) // ::: pass via closure
 			/*
 			passing the currentDone channel via a closure to the goroutine. This is a common and idiomatic way in Go to ensure that the goroutine uses the specific 
@@ -498,8 +498,8 @@ func main() {
 	)
 	additionalMethodsMenu := fyne.NewMenu("Other-Methods",
 		fyne.NewMenuItem("Home-Page (Pi methods)", func() { window1.Show() }),
-		fyne.NewMenuItem("Second-page of Pi methods", func() { createWindow2(myApp).Show() }), // it is only the Show method of createWindow2 that specifies/(calls for) action. 
-		fyne.NewMenuItem("Odd Pi calculators", func() { createWindow3(myApp).Show() }),       // ... yet even these are inert until the final line of main() : window1.ShowAndRun()
+		fyne.NewMenuItem("Second-page of Pi methods", func() { createWindow2().Show() }), // it is only the Show method of createWindow2 that specifies/(calls for) action. 
+		fyne.NewMenuItem("Odd Pi calculators", func() { createWindow3(myApp).Show() }),   // ... yet even these are inert until the final line of main() : window1.ShowAndRun()
 		fyne.NewMenuItem("Misc Maths", func() { createWindow4(myApp).Show() }),
 	)
 	optionsMenu := fyne.NewMenu("Options",

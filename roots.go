@@ -15,7 +15,7 @@ import (
 // @formatter:off
 
 // SetupRootsDemo sets up the roots demo UI and returns the button for window2
-func SetupRootsDemo(mgr *TrafficManager, radicalEntry, workEntry *widget.Entry) *ColoredButton {
+func SetupRootsDemo(mgr *TrafficManager, done chan bool, radicalEntry, workEntry *widget.Entry) *ColoredButton {
 	rootsBtn := NewColoredButton(
 		"Roots demo usage: enter an integer in each of the above fields\n" +
 			"2 or 3 in the first field, then any positive integer in the second\n" +
@@ -49,22 +49,24 @@ func SetupRootsDemo(mgr *TrafficManager, radicalEntry, workEntry *widget.Entry) 
 			for _, btn := range rootBut2 {
 				btn.Enable()
 			}
-			go func() {
-				defer func() {
-					mgr.Reset()
-					for _, btn := range buttons2 {
-						btn.Enable()
-					}
-				}()
-				xRootOfy() // ::: formatted to highlight the meat
-				mgr.SetCalculating(false)
-			}()
+			currentDone = make(chan bool) // ::: New channel per run
+			go func(done chan bool) {
+					defer func() {
+						mgr.Reset()
+						for _, btn := range buttons2 {
+							btn.Enable()
+						}
+					}()
+				xRootOfy(done) // ::: formatted to highlight the meat
+					mgr.SetCalculating(false)
+			}(currentDone) // ::: pass via closure
 		},
 	)
 	return rootsBtn
 }
 
-func xRootOfy() {
+func xRootOfy(done chan bool) {
+	sortedResults = nil 
 	usingBigFloats = false
 	TimeOfStartFromTop := time.Now()
 
@@ -79,25 +81,39 @@ func xRootOfy() {
 	startBeforeCall := time.Now()
 
 	var indx int
+	breakOutLabel1:
 	for i := 0; i < 400000; i += 2 { // this is meant to be a pretty big loop 825,000 is the number of 
-		if mgr.ShouldStop() {
-			updateOutput2("Calculation of a root aborted\n")
-			return
+		select {
+		case <-done: // ::: here an attempt is made to read from the channel (a closed channel can be read from successfully; but what is read will be the null/zero value of the type of chan (0, false, "", 0.0, etc.)
+			// in the case of this particular channel (which is of type bool) we get the value false from having received from the channel when it is already closed. 
+			// ::: if the channel known by the moniker "done" is already closed, that/it is to be interpreted as the abort signal by all listening processes. 
+			fmt.Println("Goroutine xRootOfy-1 for-loop (1 of 1) is being terminated by select case finding the done channel to be already closed")
+			updateOutput2("\nProcess terminated, ready for another selection\n")
+			return // Exit the goroutine
+		default:
+			if mgr.ShouldStop() {
+				updateOutput2("Calculation of a root aborted\n")
+				return
+			}
+			returnedEarly := readPairsSlice(i, startBeforeCall, radical2or3, workPiece, done)
+			if returnedEarly {
+				break breakOutLabel1 // break out of select and show the final 'early' result
+			}
+			handlePerfectSquaresAndCubes(TimeOfStartFromTop, radical2or3, workPiece, mgr)
+			if diffOfLarger == 0 || diffOfSmaller == 0 {
+				updateOutput2("\nbreakOut\n")
+				break breakOutLabel1 // because we have a perfect square or cube; need to break out of the for loop which is parent to the select (a simple break would only break out of the select) 
+			}
+			if i%80000 == 0 && i > 0 { // if remainder of div is 0 (every 80,000 iterations) conditional progress updates print
+				stringVindx := formatInt64WithThousandSeparators(int64(indx))
+				updateOutput2(fmt.Sprintf("\n%s iterations completed... of 400,000\n", stringVindx))
+				updateOutput2(fmt.Sprintf("\n... still working ...\n")) // ok
+	
+				fmt.Printf("%s iterations completed... of 400,000\n", stringVindx)
+				fmt.Println(i, "... still working ...")
+			}
+			indx = i // save/copy to a wider scope for later use outside this loop
 		}
-		readPairsSlice(i, startBeforeCall, radical2or3, workPiece)
-		handlePerfectSquaresAndCubes(TimeOfStartFromTop, radical2or3, workPiece, mgr)
-		if diffOfLarger == 0 || diffOfSmaller == 0 {
-			break // because we have a perfect square or cube
-		}
-		if i%80000 == 0 && i > 0 { // if remainder of div is 0 (every 80,000 iterations) conditional progress updates print
-			stringVindx := formatInt64WithThousandSeparators(int64(indx))
-			updateOutput2(fmt.Sprintf("\n%s iterations completed... of 400,000\n", stringVindx))
-			updateOutput2(fmt.Sprintf("\n... still working ...\n")) // ok
-
-			fmt.Printf("%s iterations completed... of 400,000\n", stringVindx)
-			fmt.Println(i, "... still working ...")
-		}
-		indx = i // save/copy to a wider scope for later use outside this loop
 	}
 	fmt.Println("Loop completed at index:", indx) // Debug
 
@@ -129,23 +145,19 @@ func xRootOfy() {
 
 		if len(sortedResults) > 0 {
 			if radical2or3 == 2 {
-				result := fmt.Sprintf("\n%0.9f, it's the best approximation for the Square Root of %d", sortedResults[0].result, workPiece)
-				fmt.Println("Updating GUI with:", result) // Debug
-				updateOutput2(result)
+				updateOutput2(fmt.Sprintf("\n%0.9f, it's the best approximation for the Square Root of %d", sortedResults[0].result, workPiece))
 				fmt.Println("GUI updated, printing to console...") // Debug
-				fmt.Printf("%s\n", result)
+				fmt.Printf("%s\n", sortedResults[0].result)
 				fmt.Println("Writing to file...") // Debug
-				fmt.Fprintf(fileHandle, "%s \n", result)
+				fmt.Fprintf(fileHandle, "%s \n", sortedResults[0].result)
 				fmt.Println("File written") // Debug
 			}
 			if radical2or3 == 3 {
-				result := fmt.Sprintf("\n%0.9f, it's the best approximation for the Cube Root of %d", sortedResults[0].result, workPiece)
-				fmt.Println("Updating GUI with:", result) // Debug
-				updateOutput2(result)
+				updateOutput2(fmt.Sprintf("\n%0.9f, it's the best approximation for the Cube Root of %d", sortedResults[0].result, workPiece))
 				fmt.Println("GUI updated, printing to console...") // Debug
-				fmt.Printf("%s\n", result)
+				fmt.Printf("%s\n", sortedResults[0].result)
 				fmt.Println("Writing to file...") // Debug
-				fmt.Fprintf(fileHandle, "%s \n", result)
+				fmt.Fprintf(fileHandle, "%s \n", sortedResults[0].result)
 				fmt.Println("File written") // Debug
 			}
 		}
@@ -159,166 +171,191 @@ func xRootOfy() {
 	}
 }
 
-func readPairsSlice(i int, startBeforeCall time.Time, radical2or3, workPiece int) { // ::: - -
+func readPairsSlice(i int, startBeforeCall time.Time, radical2or3, workPiece int, done chan bool) bool { // ::: - -
 	// each time that readPairsSlice is called we do two initial reads of pairsSlice prior to entering a loop in which four reads are done many many times ...
 	// ... these next two lines are the two initial reads (done using a passed index: i)
 	oneReadOfSmallerRoot := pairsSlice[i].root // Read a smaller PP and its root (just once) for each time readPairsSlice is called
 	oneReadOfSmallerPP := pairsSlice[i].product // pairsSlice is a slice of two-element structs, i.e., pairs 
-
-	for iter := 0; iter < 410000 && i < len(pairsSlice); iter++ { // go big, '410,000', but not so big that we would read past the end of the pairsSlice
-		i++ // Note how we increment the passed index i here within the loop rather than in the for loop header ... 
-		// note also that the for loop's header (the for clause) only sets and increments the loop counter -- secret sauce is what that is. 
-		largerPerfectProduct := pairsSlice[i].product // i has been incremented since the initial 'one-time' read of oneReadOfSmallerPP ...
-
-		// ... and, we keep incrementing the i until largerPerfectProduct is greater than (oneReadOfSmallerPP * workPiece)
-		if largerPerfectProduct > oneReadOfSmallerPP * workPiece { // For example: workPiece may be 11: 3.32*3.32.   Larger PP may be 49: 7*7.   Smaller oneReadPP may be 4: 2*2. 
-
-			ProspectivePHitOnLargeSide := largerPerfectProduct // rename it, badly; ::: 3
-			rootOfProspectivePHitOnLargeSide := pairsSlice[i].root // grab larger side's root ::: 4
-
-			ProspectivePHitOnSmallerSide := pairsSlice[i-1].product // these are reads 5 & 6 (initial comprise 1&2, larger comprise 3&4) 
-			rootOfProspectivePHitOnSmallerSide := pairsSlice[i-1].root
-
-
-			diffOfLarger = ProspectivePHitOnLargeSide - (workPiece * oneReadOfSmallerPP) // ::: PH_larger - (WP * _once)     7 - (11 * 4)
-			// What does it tell us if we find that the sum of one of the larger roots from the table : ProspectivePHitOnLargeSide
-			// 'plus' the negative of another smaller root from the table (times our WP) turns out to be zero?
-			diffOfSmaller = (workPiece * oneReadOfSmallerPP) - ProspectivePHitOnSmallerSide // ::: (WP * _once) - PH_smaller    (11 * 4) - 
-
-			if diffOfLarger == 0 {
-				fmt.Println(colorCyan, "\n The", radical2or3, "root of", workPiece, "is", colorGreen, float64(rootOfProspectivePHitOnLargeSide)/float64(oneReadOfSmallerRoot), colorReset, "\n")
-				updateOutput2(fmt.Sprintf("\n The %d root of %d is %0.33f\n\n", radical2or3, workPiece, float64(rootOfProspectivePHitOnLargeSide)/float64(oneReadOfSmallerRoot)))
-
-				mathSqrtCheat = math.Sqrt(float64(workPiece)) // ::: this line was initially missing, but me thinks it must belong here, as it mirrors what follows in the next if 
-				mathCbrtCheat = math.Cbrt(float64(workPiece)) // I cheated? Yea, a bit. But only in order to generate verbiage to print re a perfect root having been found
-				break
-			}
-			if diffOfSmaller == 0 {
-				fmt.Println(colorCyan, "\n The", radical2or3, "root of", workPiece, "is", colorGreen, float64(rootOfProspectivePHitOnSmallerSide)/float64(oneReadOfSmallerRoot), colorReset, "\n")
-				updateOutput2(fmt.Sprintf("\n The %d root of %d is %0.33f\n\n", radical2or3, workPiece, float64(rootOfProspectivePHitOnSmallerSide)/float64(oneReadOfSmallerRoot)))
-
-				mathSqrtCheat = math.Sqrt(float64(workPiece)) // ::: I cheated? Yea, a bit. But only in order to generate verbiage to print re a perfect root having been found 
-				mathCbrtCheat = math.Cbrt(float64(workPiece))
-				break
-			}
+		breakOutLabel2: // ::: use of this label DOES NOT reenter the following for loop -- seems like kind of shitty syntax, but it's a good thing!
+		for iter := 0; iter < 410000 && i < len(pairsSlice); iter++ { // go big, '410,000', but not so big that we would read past the end of the pairsSlice
+				select {
+				case <-done: // ::: here an attempt is made to read from the channel (a closed channel can be read from successfully; but what is read will be the null/zero value of the type of chan (0, false, "", 0.0, etc.)
+					// in the case of this particular channel (which is of type bool) we get the value false from having received from the channel when it is already closed. 
+					// ::: if the channel known by the moniker "done" is already closed, that/it is to be interpreted as the abort signal by all listening processes. 
+					fmt.Println("Goroutine readPairsSlice-1 for-loop (1 of 1) is being terminated by select case finding the done channel to be already closed")
+					return false // Exit the goroutine
+				default:
+				i++ // Note how we increment the passed index i here within the loop rather than in the for loop header ... 
+				// note also that the for loop's header (the for clause) only sets and increments the loop counter -- secret sauce is what that is. 
+				largerPerfectProduct := pairsSlice[i].product // i has been incremented since the initial 'one-time' read of oneReadOfSmallerPP ...
+		
+				// ... and, we keep incrementing the i until largerPerfectProduct is greater than (oneReadOfSmallerPP * workPiece)
+				if largerPerfectProduct > oneReadOfSmallerPP * workPiece { // For example: workPiece may be 11: 3.32*3.32.   Larger PP may be 49: 7*7.   Smaller oneReadPP may be 4: 2*2. 
+		
+					ProspectivePHitOnLargeSide := largerPerfectProduct // rename it, badly; ::: 3
+					rootOfProspectivePHitOnLargeSide := pairsSlice[i].root // grab larger side's root ::: 4
+		
+					ProspectivePHitOnSmallerSide := pairsSlice[i-1].product // these are reads 5 & 6 (initial comprise 1&2, larger comprise 3&4) 
+					rootOfProspectivePHitOnSmallerSide := pairsSlice[i-1].root
+		
+		
+					diffOfLarger = ProspectivePHitOnLargeSide - (workPiece * oneReadOfSmallerPP) // ::: PH_larger - (WP * _once)     7 - (11 * 4)
+					// What does it tell us if we find that the sum of one of the larger roots from the table : ProspectivePHitOnLargeSide
+					// 'plus' the negative of another smaller root from the table (times our WP) turns out to be zero?
+					diffOfSmaller = (workPiece * oneReadOfSmallerPP) - ProspectivePHitOnSmallerSide // ::: (WP * _once) - PH_smaller    (11 * 4) - 
+		
+					if diffOfLarger == 0 {
+						fmt.Println(colorCyan, "\n The", radical2or3, "root of", workPiece, "is", colorGreen, float64(rootOfProspectivePHitOnLargeSide)/float64(oneReadOfSmallerRoot), colorReset, "\n")
+						updateOutput2(fmt.Sprintf("\n The %d root of %d is %0.33f\n\n", radical2or3, workPiece, float64(rootOfProspectivePHitOnLargeSide)/float64(oneReadOfSmallerRoot)))
+		
+						mathSqrtCheat = math.Sqrt(float64(workPiece)) // ::: this line was initially missing, but me thinks it must belong here, as it mirrors what follows in the next if 
+						mathCbrtCheat = math.Cbrt(float64(workPiece)) // I cheated? Yea, a bit. But only in order to generate verbiage to print re a perfect root having been found
+						break breakOutLabel2 // because we have a perfect square or cube; need to break out of the for loop which is parent to the select (a simple break would only break out of the select) 
+					}
+					if diffOfSmaller == 0 {
+						fmt.Println(colorCyan, "\n The", radical2or3, "root of", workPiece, "is", colorGreen, float64(rootOfProspectivePHitOnSmallerSide)/float64(oneReadOfSmallerRoot), colorReset, "\n")
+						updateOutput2(fmt.Sprintf("\n The %d root of %d is %0.33f\n\n", radical2or3, workPiece, float64(rootOfProspectivePHitOnSmallerSide)/float64(oneReadOfSmallerRoot)))
+		
+						mathSqrtCheat = math.Sqrt(float64(workPiece)) // ::: I cheated? Yea, a bit. But only in order to generate verbiage to print re a perfect root having been found 
+						mathCbrtCheat = math.Cbrt(float64(workPiece))
+						break breakOutLabel2 // because we have a perfect square or cube; need to break out of the for loop which is parent to the select (a simple break would only break out of the select) 
+					}
+					
+					// 'large' element of a couplet: 
+					if diffOfLarger < precisionOfRoot {
+						result := float64(rootOfProspectivePHitOnLargeSide) / float64(oneReadOfSmallerRoot) // :::    root/root
+						pdiff := float64(diffOfLarger) / float64(ProspectivePHitOnLargeSide) // :::                   diff/PP
+							sortedResults = append(sortedResults, Results{result: result, pdiff: pdiff}) // collect results into a slice that will eventually be sorted 
+						fmt.Printf("Found large prospect at index %d: result=%f, diff=%d\n", i, result, diffOfLarger) // Debug, ditto
+						updateOutput2(fmt.Sprintf("Found large prospect at index %d: result=%f, diff=%d\n", i, result, diffOfLarger)) // update, info
+						if diffOfLarger < 2 {break breakOutLabel2} // reconsider this later addition to the code base?
+					}
+					// 'small' element of a couplet: 
+					if diffOfSmaller < precisionOfRoot {
+						result := float64(rootOfProspectivePHitOnSmallerSide) / float64(oneReadOfSmallerRoot)
+						pdiff := float64(diffOfSmaller) / float64(ProspectivePHitOnSmallerSide)
+							sortedResults = append(sortedResults, Results{result: result, pdiff: pdiff}) // collect results into a slice that will eventually be sorted 
+						fmt.Printf("Found small prospect at index %d: result=%f, diff=%d\n", i, result, diffOfSmaller) // Debug
+						updateOutput2(fmt.Sprintf("Found small prospect at index %d: result=%f, diff=%d\n", i, result, diffOfSmaller)) // Debug
+						if diffOfSmaller < 2 {break breakOutLabel2} // reconsider this later addition to the code base?
+					}
+		
+					// ::: we will be potentially duplicating Results struct -> slice 
+					// larger side section: ----------------------------------------------------------------------------------------------------------------------------------------
+					// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+						if diffOfLarger < precisionOfRoot { // report the prospects, their differences, and the calculated result for the Sqrt or Cbrt
+							fmt.Println("small PP is", colorCyan, oneReadOfSmallerPP, colorReset, "and, slightly on the higher side of", workPiece,
+								"* that we found a PP of", colorCyan, ProspectivePHitOnLargeSide, colorReset, "a difference of", diffOfLarger)
+							updateOutput2(fmt.Sprintf("\nsmall PP is %d and, slightly on the higher side of %d * that we found a PP of %d a difference of %d\n", 
+								oneReadOfSmallerPP, workPiece, ProspectivePHitOnLargeSide, diffOfLarger))
 			
-			// 'large' element of a couplet: 
-			if diffOfLarger < precisionOfRoot {
-				result := float64(rootOfProspectivePHitOnLargeSide) / float64(oneReadOfSmallerRoot) // :::    root/root
-				pdiff := float64(diffOfLarger) / float64(ProspectivePHitOnLargeSide) // :::                   diff/PP
-					sortedResults = append(sortedResults, Results{result: result, pdiff: pdiff}) // collect results into a slice that will eventually be sorted 
-				fmt.Printf("Found large prospect at index %d: result=%f, diff=%d\n", i, result, diffOfLarger) // Debug, ditto
-				updateOutput2(fmt.Sprintf("Found large prospect at index %d: result=%f, diff=%d\n", i, result, diffOfLarger)) // update, info
-				if diffOfLarger < 2 {break} // reconsider this later addition to the code base?
-			}
-			// 'small' element of a couplet: 
-			if diffOfSmaller < precisionOfRoot {
-				result := float64(rootOfProspectivePHitOnSmallerSide) / float64(oneReadOfSmallerRoot)
-				pdiff := float64(diffOfSmaller) / float64(ProspectivePHitOnSmallerSide)
-					sortedResults = append(sortedResults, Results{result: result, pdiff: pdiff}) // collect results into a slice that will eventually be sorted 
-				fmt.Printf("Found small prospect at index %d: result=%f, diff=%d\n", i, result, diffOfSmaller) // Debug
-				updateOutput2(fmt.Sprintf("Found small prospect at index %d: result=%f, diff=%d\n", i, result, diffOfSmaller)) // Debug
-				if diffOfSmaller < 2 {break} // reconsider this later addition to the code base?
-			}
-
-			// ::: we will be potentially duplicating Results struct -> slice 
-			// larger side section: ----------------------------------------------------------------------------------------------------------------------------------------
-			// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-			if diffOfLarger < precisionOfRoot { // report the prospects, their differences, and the calculated result for the Sqrt or Cbrt
-				fmt.Println("small PP is", colorCyan, oneReadOfSmallerPP, colorReset, "and, slightly on the higher side of", workPiece,
-					"* that we found a PP of", colorCyan, ProspectivePHitOnLargeSide, colorReset, "a difference of", diffOfLarger)
-				updateOutput2(fmt.Sprintf("\nsmall PP is %d and, slightly on the higher side of %d * that we found a PP of %d a difference of %d\n", 
-					oneReadOfSmallerPP, workPiece, ProspectivePHitOnLargeSide, diffOfLarger))
-
-				fmt.Println("the ", radical2or3, " root of ", workPiece, " is calculated as ", colorGreen,
-					float64(rootOfProspectivePHitOnLargeSide)/float64(oneReadOfSmallerRoot), colorReset)
-				updateOutput2(fmt.Sprintf("\nthe %d root of %d is calculated as %0.6f \n", 
-					radical2or3, workPiece, float64(rootOfProspectivePHitOnLargeSide)/float64(oneReadOfSmallerRoot)))
-
-				fmt.Printf("with pdiff of %0.4f \n", (float64(diffOfLarger)/float64(ProspectivePHitOnLargeSide))*100000)
-				updateOutput2(fmt.Sprintf("with pdiff of %0.4f \n", (float64(diffOfLarger)/float64(ProspectivePHitOnLargeSide))*100000))
-				
-				// save the result to an accumulator array so we can Fprint all such hits at the very end
-				// List_of_2_results_case18 = append(List_of_2_results_case18, float64(rootOfProspectivePHitOnLargeSide) / float64(oneReadOfSmallerRoot) )
-				// corresponding_diffs = append(corresponding_diffs, diffOfLarger)
-				// diffs_as_percent = append(diffs_as_percent, float64(diffOfLarger)/float64(ProspectivePHitOnLargeSide))
-
-				// ***** ^^^^ ****** the preceding was replaced with the following five lines *******************************************
-				
-				// in the next five lines we load (append) a record into/to the slice of Results
-				Result1 := Results{
-					result: float64(rootOfProspectivePHitOnLargeSide) / float64(oneReadOfSmallerRoot),
-					pdiff:  float64(diffOfLarger) / float64(ProspectivePHitOnLargeSide),
-				}
-				sortedResults = append(sortedResults, Result1)
-
-				t2 := time.Now()
-				elapsed2 := t2.Sub(startBeforeCall)
-				// if needed, notify the user that we are still working
-				Tim_win = 0.178
-				if radical2or3 == 3 {
-					if workPiece > 13 {
-						Tim_win = 0.0012
-					} else {
-						Tim_win = 0.003
-					}
-				}
-				if elapsed2.Seconds() > Tim_win {
-					fmt.Println(elapsed2.Seconds(), "Seconds have elapsed ... working ...\n")
-					updateOutput2(fmt.Sprintf("\n%0.4f Seconds have elapsed ... working ...\n\n", elapsed2.Seconds()))
-				}
-			}
-
-			// smaller side section: ----------------------------------------------------------------------------------------------------------------------------------------
-			// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-			if diffOfSmaller < precisionOfRoot { // report the prospects, their differences, and the calculated result for the Sqrt or Cbrt
-				fmt.Println("small PP is", colorCyan, oneReadOfSmallerPP, colorReset, "and, slightly on the lesser side of", workPiece,
-					"* that we found a PP of", colorCyan, ProspectivePHitOnSmallerSide, colorReset, "a difference of", diffOfSmaller)
-				updateOutput2(fmt.Sprintf("\nsmall PP is %d and, slightly on the higher side of %d * that we found a PP of %d a difference of %d\n", 
-					oneReadOfSmallerPP, workPiece, ProspectivePHitOnSmallerSide, diffOfSmaller))
-
-				fmt.Println("the ", radical2or3, " root of ", workPiece, " is calculated as ", colorGreen,
-					float64(rootOfProspectivePHitOnSmallerSide)/float64(oneReadOfSmallerRoot), colorReset)
-				updateOutput2(fmt.Sprintf("\nthe %d root of %d is calculated as %0.6f \n", 
-					radical2or3, workPiece, float64(rootOfProspectivePHitOnSmallerSide)/float64(oneReadOfSmallerRoot)))
-
-				fmt.Printf("with pdiff of %0.4f \n", (float64(diffOfSmaller)/float64(ProspectivePHitOnSmallerSide))*100000)
-				updateOutput2(fmt.Sprintf("with pdiff of %0.4f \n", (float64(diffOfSmaller)/float64(ProspectivePHitOnSmallerSide))*100000))
-
-				// save the result to three accumulator arrays so we can Fprint all such hits, diffs, and p-diffs, at the very end of run
-				// List_of_2_results_case18 = append(List_of_2_results_case18, float64(rootOfProspectivePHitOnSmallerSide) / float64(oneReadOfSmallerRoot) )
-				// corresponding_diffs = append(corresponding_diffs, diffOfSmaller)
-				// diffs_as_percent = append(diffs_as_percent, float64(diffOfSmaller)/float64(ProspectivePHitOnSmallerSide))
-				
-				// ***** ^^^^ ****** the preceding was replaced with the following five lines *******************************************
-
-				// in the next five lines we load (append) a record into/to the slice of Results
-				Result1 := Results{
-					result: float64(rootOfProspectivePHitOnSmallerSide) / float64(oneReadOfSmallerRoot),
-					pdiff:  float64(diffOfSmaller) / float64(ProspectivePHitOnSmallerSide),
-				}
-				sortedResults = append(sortedResults, Result1)
-
-				t2 := time.Now()
-				elapsed2 := t2.Sub(startBeforeCall)
-				// if needed, notify the user that we are still working
-				Tim_win = 0.178
-				if radical2or3 == 3 {
-					if workPiece > 13 {
-						Tim_win = 0.0012
-					} else {
-						Tim_win = 0.003
-					}
-				}
-				if elapsed2.Seconds() > Tim_win {
-					fmt.Println(elapsed2.Seconds(), "Seconds have elapsed ... working ...\n")
-					updateOutput2(fmt.Sprintf("\n%0.4f Seconds have elapsed ... working ...\n\n", elapsed2.Seconds()))
+							result := float64(rootOfProspectivePHitOnLargeSide)/float64(oneReadOfSmallerRoot)
+							
+							fmt.Println("the ", radical2or3, " root of ", workPiece, " is calculated as ", colorGreen,
+								result, colorReset)
+							updateOutput2(fmt.Sprintf("\nthe %d root of %d is calculated as %0.9f \n", 
+								radical2or3, workPiece, result))
+			
+							pdiff := (float64(diffOfLarger) / float64(ProspectivePHitOnLargeSide)) * 100000
+							fmt.Printf("with pdiff of %0.4f \n", pdiff )
+							updateOutput2(fmt.Sprintf("with pdiff of %0.4f \n", pdiff ))
+							if pdiff < 0.0002 {
+								updateOutput2("\npdiff was less than 0.001 so we are calling it\n")
+								sortedResults = append(sortedResults, Results{result: result, pdiff: pdiff}) // collect results into a slice that will eventually be sorted
+								return true // calledItEarly is true
+							} 
+							
+							// save the result to an accumulator array so we can Fprint all such hits at the very end
+							// List_of_2_results_case18 = append(List_of_2_results_case18, float64(rootOfProspectivePHitOnLargeSide) / float64(oneReadOfSmallerRoot) )
+							// corresponding_diffs = append(corresponding_diffs, diffOfLarger)
+							// diffs_as_percent = append(diffs_as_percent, float64(diffOfLarger)/float64(ProspectivePHitOnLargeSide))
+			
+							// ***** ^^^^ ****** the preceding was replaced with the following five lines *******************************************
+							
+							// in the next five lines we load (append) a record into/to the slice of Results
+							Result1 := Results{
+								result: float64(rootOfProspectivePHitOnLargeSide) / float64(oneReadOfSmallerRoot),
+								pdiff:  float64(diffOfLarger) / float64(ProspectivePHitOnLargeSide),
+							}
+							sortedResults = append(sortedResults, Result1)
+			
+							t2 := time.Now()
+							elapsed2 := t2.Sub(startBeforeCall)
+							// if needed, notify the user that we are still working
+							Tim_win = 0.178
+							if radical2or3 == 3 {
+								if workPiece > 13 {
+									Tim_win = 0.0012
+								} else {
+									Tim_win = 0.003
+								}
+							}
+							if elapsed2.Seconds() > Tim_win {
+								fmt.Println(elapsed2.Seconds(), "Seconds have elapsed ... working ...\n")
+								updateOutput2(fmt.Sprintf("\n%0.4f Seconds have elapsed ... working ...\n\n", elapsed2.Seconds()))
+							}
+						}
+		
+					// smaller side section: ----------------------------------------------------------------------------------------------------------------------------------------
+					// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+						if diffOfSmaller < precisionOfRoot { // report the prospects, their differences, and the calculated result for the Sqrt or Cbrt
+							fmt.Println("small PP is", colorCyan, oneReadOfSmallerPP, colorReset, "and, slightly on the lesser side of", workPiece,
+								"* that we found a PP of", colorCyan, ProspectivePHitOnSmallerSide, colorReset, "a difference of", diffOfSmaller)
+							updateOutput2(fmt.Sprintf("\nsmall PP is %d and, slightly on the higher side of %d * that we found a PP of %d a difference of %d\n", 
+								oneReadOfSmallerPP, workPiece, ProspectivePHitOnSmallerSide, diffOfSmaller))
+							
+							result := float64(rootOfProspectivePHitOnSmallerSide)/float64(oneReadOfSmallerRoot)
+							
+							fmt.Println("the ", radical2or3, " root of ", workPiece, " is calculated as ", colorGreen,
+								result, colorReset)
+							updateOutput2(fmt.Sprintf("\nthe %d root of %d is calculated as %0.9f \n", 
+								radical2or3, workPiece, result))
+			
+							pdiff := (float64(diffOfSmaller) / float64(ProspectivePHitOnSmallerSide)) * 100000 // even within an if block, variables are local 
+							fmt.Printf("with pdiff of %0.4f \n", pdiff )
+							updateOutput2(fmt.Sprintf("with pdiff of %0.4f \n", pdiff ))
+							if pdiff < 0.0002 {
+								updateOutput2("\npdiff was less than 0.001 so we are calling it\n")
+								sortedResults = append(sortedResults, Results{result: result, pdiff: pdiff}) // collect results into a slice that will eventually be sorted
+								return true // calledItEarly is true
+							}
+							
+							// save the result to three accumulator arrays so we can Fprint all such hits, diffs, and p-diffs, at the very end of run
+							// List_of_2_results_case18 = append(List_of_2_results_case18, float64(rootOfProspectivePHitOnSmallerSide) / float64(oneReadOfSmallerRoot) )
+							// corresponding_diffs = append(corresponding_diffs, diffOfSmaller)
+							// diffs_as_percent = append(diffs_as_percent, float64(diffOfSmaller)/float64(ProspectivePHitOnSmallerSide))
+							
+							// ***** ^^^^ ****** the preceding was replaced with the following five lines *******************************************
+			
+							// in the next five lines we load (append) a record into/to the slice of Results
+							Result1 := Results{
+								result: float64(rootOfProspectivePHitOnSmallerSide) / float64(oneReadOfSmallerRoot),
+								pdiff:  float64(diffOfSmaller) / float64(ProspectivePHitOnSmallerSide),
+							}
+							sortedResults = append(sortedResults, Result1)
+			
+							t2 := time.Now()
+							elapsed2 := t2.Sub(startBeforeCall)
+							// if needed, notify the user that we are still working
+							Tim_win = 0.178
+							if radical2or3 == 3 {
+								if workPiece > 13 {
+									Tim_win = 0.0012
+								} else {
+									Tim_win = 0.003
+								}
+							}
+							if elapsed2.Seconds() > Tim_win {
+								fmt.Println(elapsed2.Seconds(), "Seconds have elapsed ... working ...\n")
+								updateOutput2(fmt.Sprintf("\n%0.4f Seconds have elapsed ... working ...\n\n", elapsed2.Seconds()))
+							}
+						}
+					break breakOutLabel2
 				}
 			}
-			break
 		}
-	}
-}
+	return false
+} 
 
 // handlePerfectSquaresAndCubes reports/logs perfect squares/cubes to file and UI
 func handlePerfectSquaresAndCubes(TimeOfStartFromTop time.Time, radical2or3, workPiece int, mgr *TrafficManager) {
@@ -377,7 +414,7 @@ func setPrecisionForSquareOrCubeRoot(radical2or3, workPiece int) { // ::: - -
 }
 
 
-// build a table/slice of ::: perfect squares or cubes, depending on radical 2 or 3 
+// build a slice containing 825,000 pairs: a table/slice of ::: perfect squares or cubes, depending on radical 2 or 3 
 func buildPairsSlice(radical2or3 int) { // ::: - -
 	pairsSlice = nil // Clear/reset the slice between runs
 	//

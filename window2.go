@@ -15,12 +15,13 @@ import (
 
 // Three Additional Windows: 
 // ::: ------------------------------------------------------------------------------------------------------------------------------------------------------------
-func createWindow2(myApp fyne.App) fyne.Window {
+func createWindow2() fyne.Window {
 	window2.Resize(fyne.NewSize(1900, 1600))
 	outputLabel2.Wrapping = fyne.TextWrapWord
 	scrollContainer2.SetMinSize(fyne.NewSize(1900, 1090))
 	coloredScroll2 := container.NewMax(bgsc2, scrollContainer2) // Light blue-ish scroll bg
 
+	// set up user data entry for RootsBtn2  
 	radicalEntry := widget.NewEntry()
 	radicalEntry.SetPlaceHolder("Enter radical index (e.g., 2 or 3)")
 	workEntry := widget.NewEntry()
@@ -76,8 +77,8 @@ func createWindow2(myApp fyne.App) fyne.Window {
 
 	// ::: Buttons2
 
-
-	RootsBtn2 := SetupRootsDemo(mgr, radicalEntry, workEntry) // ::: just one line here, for this math button (see SetupRootsDemo)
+	// This button handler is different from the other ones here in that it gets its input from a widget.NewEntry() 
+	RootsBtn2 := SetupRootsDemo(mgr, done, radicalEntry, workEntry) // ::: just one line here, for this math button (see SetupRootsDemo)
 	/*
 		.
 		.
