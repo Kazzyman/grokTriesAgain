@@ -1,14 +1,20 @@
 package main
 
 import (
+	"bufio"
+	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 	"math/big"
+	"os"
 	"os/exec"
+	"path/filepath"
+	"regexp"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -292,4 +298,115 @@ func openTerminal() error {
 	return cmd.Start()
 }
 
+func extractAndPrintGoFilenames() error {
+	var fileCount int
+	// Define the file path.
+	filePath := "/Users/quasar/grokTriesAgain/sloc.go"
 
+	// Open the file.
+	file, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to open file: %v", err)
+	}
+	defer file.Close()
+
+	// Compile the regex to match filenames after the last '/' and before '"'.
+	re := regexp.MustCompile(`/([^/]+)"`)
+
+	// Slice to store filenames from the file.
+	filenames := []string{}
+
+	// Read file line by line.
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		// Skip lines containing "/*".
+		if strings.Contains(line, "/*") {
+			continue
+		}
+		matches := re.FindStringSubmatch(line)
+		if len(matches) > 1 {
+			filenames = append(filenames, matches[1])
+			fileCount++
+		}
+	}
+
+	// Check for scanner errors.
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("error reading file: %v", err)
+	}
+
+	// Sort the filenames.
+	sort.Strings(filenames)
+
+	// Print filenames found in sloc.go with numbering.
+	fmt.Printf("Files processed in sloc.go %d, not counting the one empty file: \n", fileCount-1)
+	var fileNumber int
+	fileNumber = 1
+	for _, fileName := range filenames {
+		fmt.Printf("\t%d %s\n", fileNumber, fileName)
+		fileNumber++
+	}
+
+	// Get the directory of sloc.go.
+	dir := filepath.Dir(filePath) // "/Users/quasar/grokTriesAgain"
+
+	// Read the directory contents.
+	dirEntries, err := os.ReadDir(dir)
+	if err != nil {
+		return fmt.Errorf("failed to read directory: %v", err)
+	}
+
+	// Maps to track files.
+	goFilesNotInSloc := make(map[string]bool)
+	allFiles := make(map[string]bool)
+
+	// Scan directory entries.
+	for _, entry := range dirEntries {
+		name := entry.Name()
+		allFiles[name] = true // Add to all files.
+		if filepath.Ext(name) == ".go" { // Check if it's a .go file.
+			// Check if it's not in the filenames slice.
+			found := false
+			for _, f := range filenames {
+				if f == name {
+					found = true
+					break
+				}
+			}
+			if !found {
+				goFilesNotInSloc[name] = true
+			}
+		}
+	}
+
+	// Print .go files not in sloc.go.
+	fmt.Println("\nGo files in directory not processed in sloc.go:")
+	goNotListed := make([]string, 0, len(goFilesNotInSloc))
+	for f := range goFilesNotInSloc {
+		goNotListed = append(goNotListed, f)
+	}
+	sort.Strings(goNotListed)
+	for _, f := range goNotListed {
+		fmt.Printf("\t%s\n", f)
+	}
+
+	// Print all files which are not '.go' files in the directory.
+	fmt.Println("\nAll other files in directory:")
+	nonGoFilesList := make([]string, 0, len(allFiles))
+	for f := range allFiles {
+		if filepath.Ext(f) != ".go" { // Exclude .go files.
+			nonGoFilesList = append(nonGoFilesList, f)
+		}
+	}
+	sort.Strings(nonGoFilesList)
+
+	var fileNumber2 int
+	fileNumber2 = 1
+	for _, f := range nonGoFilesList {
+		fmt.Printf("\t%d %s\n", fileNumber2, f)
+		fileNumber2++
+	}
+
+	return nil
+}

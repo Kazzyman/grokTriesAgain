@@ -138,7 +138,7 @@ func createWindow2() fyne.Window {
 				})
 		})
 
-	// ::: Chud is temp here, Bailey concur will go here eventually 
+	// ::: Chud is temp here, Bailey concur will go here eventually -- SO DONT WORRY ABOUT FIXING ITS ISSUES !!!!
 	ChudnovskyBtn2 := NewColoredButton("chudnovsky -- takes input", color.RGBA{255, 255, 100, 235},
 		func() {
 			if calculating {
@@ -177,20 +177,102 @@ func createWindow2() fyne.Window {
 						for _, btn := range buttons2 {
 							btn.Enable()
 						}
+						calculating = false // ::: this is the trick to allow others to run after the dialog is canceled/dismissed.
 					}()
 				})
 		})
 
 	/*
 		.
+				π = Σ(k=0 to ∞) [ (1/16^k) ( 4/(8k + 1) - 2/(8k + 4) - 1/(8k + 5) - 1/(8k + 6) ) ]
 		.
 	*/
+	BbpMaxBtn2 := NewColoredButton(
+		"BBP Max . Assembled hot, one digit at a time\n" +
+			"spits out a nearly-unlimited, load of Pi goodness\n" +
+			"π=Σ(k=0 to ∞) [ (1/16^k) ( 4/(8k+1) - 2/(8k+4) - 1/(8k+5) - 1/(8k+6) ) ]\n" +
+			"bakes π using BBP and all available CPUs",
+		color.RGBA{255, 255, 100, 235},
 
+		func() {
+			var bbpMaxDigits int = 2000 // to resolve a scoping issue 
+			if calculating {
+				return
+			}
+			calculating = true
+			for _, btn := range buttons2 {
+				btn.Disable()
+			}
+			for _, btn := range bbpMaxBut2 { // Refer to the comments in the initial assignment and creation of archimedesBtn1
+				calculating = true
+				btn.Enable()
+			}
+			currentDone = make(chan bool, 1) // ::: New channel per run BUFFER SIZE ADDED TO ELIMINATE BLOCKING ???
+			updateOutput2("\nRunning BbpMax...\n\n")
+
+			showCustomEntryDialog2(
+				"Input Desired number of digits",
+				"Any number less than infinity",
+				func(input string) {
+					if input != "" { // This if-else is part of the magic that allows us to dismiss a dialog and allow others to run after the dialog is canceled/dismissed.
+						input = removeCommasAndPeriods(input) // allow user to enter a number with a comma
+						val, err := strconv.Atoi(input)
+						if err != nil { // we may force val to become 460, or leave it alone ...
+							fmt.Println("Error converting input:", err)
+							updateOutput2("\nInvalid input, using default 2000 digits\n")
+							val = 2000
+						} else if val <= 0 {
+							updateOutput2("\nInput must be positive, using default 2000 digits\n")
+							val = 2000
+						} else if val > 90000000000 {
+							updateOutput2("\nInput must be less than infinity -- using default of 5000 digits\n")
+							val = 2000
+						} else {
+							bbpMaxDigits = val // resolves a scoping issue 
+						}
+
+						go func(done chan bool) { 
+							defer func() { 
+								calculating = false
+								updateOutput2("\nCalculation definitely finished; one way or another.\n")
+							}()
+							bbpMax(updateOutput2, bbpMaxDigits, done) // near the end of this function I do: done <- true|false // trying to signal a clean and complete exit, but neither works as intended ...
+								for _, btn := range buttons2 {
+									btn.Enable()
+								}
+							    select {
+							    case success := <-done:
+							        if success {
+							            updateOutput2("\nCalculation finished completely normally.\n")
+							        } else {
+							            updateOutput2("\nCalculation finished; from issues or a user abort request.\n")
+							        }
+							    default:
+							        updateOutput2("\nCalculation finished; from issues. // No send = issues\n") // No send = issues
+							    }
+						}(currentDone) // currentDone made anew near top of button handler 
+					} else {
+						// dialog canceled 
+						updateOutput2("\nbbpMax calculation canceled, make another selection\n")
+						for _, btn := range buttons2 {
+							btn.Enable()
+						}
+						calculating = false // ::: this is the trick to allow others to run after the dialog is canceled/dismissed.
+					}
+				},
+			)
+		},
+	)
+	/*
+	.
+	.
+	 */
 	rootBut2 = []*ColoredButton{RootsBtn2} // these are a slick trick/kluge 
 	chudBut2 = []*ColoredButton{ChudnovskyBtn2} // All these are a trick/kluge used as bug preventions // to keep methods from being started or restarted in parallel (over-lapping)
 	nilaBut2 = []*ColoredButton{NilakanthaBtn2}
+	bbpMaxBut2 = []*ColoredButton{BbpMaxBtn2}
 
-	buttons2 = []*ColoredButton{RootsBtn2, NilakanthaBtn2, ChudnovskyBtn2} // array used only for range btn.Enable()
+	buttons2 = []*ColoredButton{RootsBtn2, NilakanthaBtn2, ChudnovskyBtn2, BbpMaxBtn2} // array used only for range btn.Enable()
 
 	// ::: page-2 Lay-out
 	content2 := container.NewVBox(
@@ -199,7 +281,7 @@ func createWindow2() fyne.Window {
 		radicalEntry,
 		workEntry,
 
-		container.NewGridWithColumns(4, RootsBtn2, NilakanthaBtn2, ChudnovskyBtn2),
+		container.NewGridWithColumns(4, RootsBtn2, NilakanthaBtn2, ChudnovskyBtn2, BbpMaxBtn2),
 
 		coloredScroll2, // Use coloredScroll2 directly or windowContent2 if you want an extra layer
 	)

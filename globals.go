@@ -30,7 +30,7 @@ var (
 	// Initialize the Fyne app (myApp) and create window1 as its main window. Technically not a case of "extension"
 	myApp = app.New()
 	window1 = myApp.NewWindow("Rick's Pi calculation Demo, set #1")
-	currentDone    chan bool
+	currentDone    chan bool 
 )
 
 // from window2.go
@@ -78,6 +78,7 @@ var (
 	nilaBut2 []*ColoredButton
 	scoreBut2 []*ColoredButton
 	rootBut2 []*ColoredButton
+	bbpMaxBut2 []*ColoredButton
 )
 
 // buttons
