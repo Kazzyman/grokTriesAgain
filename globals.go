@@ -56,8 +56,10 @@ type Pairs struct {
 	root int
 }
 
+var calculating0 bool
+var calculating1 bool
+var calculating2 bool
 
-var calculating bool
 
 // But
 var (

@@ -224,10 +224,12 @@ func ArchimedesBig(fyneFunc func(string), done chan bool) { // ::: - -
 					if i == 2002 {fyneFunc(fmt.Sprintf("\t\tNo more sleeping!!!...\n\n"))}}		
 			} // end of select
 		} // end of for loop, only one way out 
-		
-// ::: Prepare to exit the Archimedes method function, (set coast-clear flag and enable all buttons)
-		calculating = false
-		for _, btn := range buttons1 {
-			btn.Enable()
-		}
+		/*
+		// ::: Prepare to exit the Archimedes method function, (set coast-clear flag and enable all buttons)
+			calculating1 = false
+			for _, btn := range buttons1 {
+				btn.Enable()
+			}
+		 */
+
 }

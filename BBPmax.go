@@ -44,7 +44,7 @@ func bbpMax(fyneFunc func(string), digits int, done chan bool) { // ::: - -
 	// i.e., a buffered channel that can hold n *big.Float values BEFORE BLOCKING. A channel is like a pipe between workers. The buffer (n) means it can store n results 
 	// ... (pieces of π) WITHOUT WAITING (before needing to wait) for someone to pick one or more of them up. It’s A QUEUE for the math bits being calculated.
 
-	worker := workers(p, done) // Here is where we assign a closure to a reusable func value : worker . A closure is a function that can remember the state of its values from the last time it was called. 
+	worker := workers(p) // Here is where we assign a closure to a reusable func value : worker . A closure is a function that can remember the state of its values from the last time it was called. 
 
 	pi := new(big.Float).SetPrec(p).SetInt64(0) // that last part: SetInt64(0) is entirely redundant and included only for the sake of being explicit 
 
@@ -86,7 +86,31 @@ func bbpMax(fyneFunc func(string), digits int, done chan bool) { // ::: - -
 	// n was the number of digits of pi to calculate, and here below n specifies the number of digits past the decimal to print using the indexed ver of the %.nf verb 
 	// fmt.Printf("%[1]*.[2]*[3]f \n", 1, n, pi) // original from CLI version
 	// updateChan <- updateData{text:"%[1]*.[2]*[3]f \n", 1, n, pi} // does not work, even with the correct signature for updateChan <- updateData{text:"
-	fyneFunc(fmt.Sprintf("%[1]*.[2]*[3]f \n", 1, n, pi)) // a more explicit ver of %.nf  [here we also specify the width of the number to the left of the decimal] 
+	fiveK := new(big.Float)
+	if pi.Cmp(fiveK) == 1 { // if pi > 5,000
+		// obtain file handle
+		fileHandleBig, err1prslc2c := os.OpenFile("big_pie_is_in_here.txt", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600) // append to file
+		check(err1prslc2c)                                                                                             // ... gets a file handle to dataLog-From_calculate-pi-and-friends.txt
+		// defer fileHandleBig.Close()   // It’s idiomatic to defer a Close immediately after opening a file.
+
+		// to ::: file
+		_, err9bigpie := fmt.Fprint(fileHandleBig, pi) // ::: dump this big-assed pie to a special log file
+		check(err9bigpie)
+		_, err9bigpie = fmt.Fprint(fileHandleBig, "\n was pi as a big.Float\n") // add a suffix
+		check(err9bigpie)
+		fileHandleBig.Close()
+
+		file1 := "/Users/quasar/grokTriesAgain/big_pie_is_in_here.txt" // Replace with your first file path
+		file2 := "/Users/quasar/grokTriesAgain/piOneMil.txt"           // Replace with your second file path
+
+		count, err := compareFiles2(file1, file2)
+		if err != nil {
+			fmt.Println("Error:", err)
+		}
+		updateOutput2(fmt.Sprintf("\n\nMatched %d characters in sequence from the start.\n", count))
+	} else {
+		fyneFunc(fmt.Sprintf("%[1]*.[2]*[3]f \n", 1, n, pi)) // a more explicit ver of %.nf  [here we also specify the width of the number to the left of the decimal]
+	}
 
 	// Write run-stats to a log file
 	t := time.Now()
@@ -121,7 +145,7 @@ func bbpMax(fyneFunc func(string), digits int, done chan bool) { // ::: - -
 }
 
 // Create a closure that will be assigned to worker
-func workers(p uint, done chan bool) func(id int, result chan *big.Float) { //  ::: - -
+func workers(p uint) func(id int, result chan *big.Float) { //  ::: - -
 	// Captured variables ?
 	B1 := new(big.Float).SetPrec(p).SetInt64(1) // Initialize these new big float values to: 1, 2, 4, 5, etc. [a strange-looking limited series]
 	B2 := new(big.Float).SetPrec(p).SetInt64(2) // All of these will become part of the closure function value below 

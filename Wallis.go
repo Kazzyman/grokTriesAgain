@@ -358,7 +358,7 @@ fmt.Println("I am here in JW")
 		} // end of select
 	} // end of for interInt64 < 40B
 // written entirely by Richard Woolley
-calculating = false
+// calculating1 = false
 return π
 
 } // end of JohnWallis()

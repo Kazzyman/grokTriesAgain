@@ -15,30 +15,28 @@ import (
 
 func main() {
 	countAndLogSLOC() // this one func is the only actual call-to-action apart from the last line in main() : window1.ShowAndRun() -- the setting of variables notwithstanding! 
-	calculating = false // set the global the-coast-is-clear flag
+	calculating1 = false // set the global the-coast-is-clear flag
 	myApp.Settings().SetTheme(theme.LightTheme()) // establish a Theme that will work well with dialog boxes
 	window1.Resize(fyne.NewSize(1900, 1600))
 
 	scrollContainer1 = container.NewVScroll(outputLabel1)
-	
 	scrollContainer1.SetMinSize(fyne.NewSize(1900, 930)) // was before adding the scoreBoard 1900, 1050
 	
 	outputLabel1.Wrapping = fyne.TextWrapWord // make the text in the scrollable area auto-wrap
 
 		coloredScroll := container.NewMax(bgsc, scrollContainer1) // Combine background and scroll, Layer light green background behind scroll content.
-	
 		windowContent := container.NewMax(bgwc, coloredScroll) // Layer the background and content; Layer light blue background across the entire window content.
 
 /*
 .
 .
  */
-	// Terminal-like display
+	// Terminal-like display, small area under large buttons used for nifty_scoreBoard display 
 	terminalDisplay := widget.NewTextGrid()
 	terminalDisplay.SetText("Terminal Output:\n\nWaiting for calculation...")
 
 	// Button only being used as a title-label for nifty_scoreBoard
-	calcButton := widget.NewButton("Also try our special menu option: Calculate Pi on a ScoreBoard", func() {
+	calcButton := widget.NewButton("Also try the special menu option: Calculate Pi on a ScoreBoard", func() {
 		updateOutput1("\n- * - * - that button does nothing - * - * -\n\n")
 	})
 
@@ -55,7 +53,7 @@ func main() {
 	/*
 	.
 	.
-	 */
+	 */ // takes no input so this button handler is pretty simple
 	archimedesBtn1 := NewColoredButton(
 	"Archimedes method for finding π, modified by Richard Woolley\n" +
 		"easy to understand geometric method using big.Float variables\n" +
@@ -64,27 +62,27 @@ func main() {
 		color.RGBA{255, 110, 110, 215},
 		
 		func() {
-			if calculating {
+			if calculating1 { // if another method is running, bail 
 				return
 			}
-			calculating = true
+			calculating1 = true
 			for _, btn := range buttons1 {
 				btn.Disable()
 			}
 			// We want to cause the button that corresponds to the currently executing method to remain bright, while the other buttons remain dimmed...
 			for _, btn := range archiBut { // This trick accomplishes that because the archiBut array comes after the creation of archimedesBtn1
-				calculating = true // This keeps archimedesBtn1 from being restarted in parallel with itself...
+				calculating1 = true // This keeps archimedesBtn1 from being restarted in parallel with itself...
 				btn.Enable() // ... even though we herewith enable archimedesBtn1 ... note that simply doing: archimedesBtn1.Enable() would not work...
 			} //  ... because, we are inside of the creation of archimedesBtn1 [ it is a timing and scoping issue ]
 			currentDone = make(chan bool) // ::: New channel per run
 			updateOutput1("\nRunning ArchimedesBig...\n\n")
 			go func(done chan bool) { // ::: go func now takes an argument
 					defer func() {       // ::: new defer func with global calculating flag set 
-						calculating = false
+						calculating1 = false
 						updateOutput1("Calculation definitely finished; possibly aborted\n")
 					}()
 				ArchimedesBig(updateOutput1, done) // ::: func < - - - - - - - - - - - - - < -
-					calculating = false
+					calculating1 = false
 					for _, btn := range buttons1 {
 						btn.Enable()
 					}
@@ -108,10 +106,10 @@ func main() {
 		color.RGBA{110, 110, 255, 185}, 
 		
 		func() {
-			if calculating {
+			if calculating1 {
 				return
 			}
-			calculating = true
+			calculating1 = true
 			for _, btn := range buttons1 {
 				btn.Disable()
 			}
@@ -122,21 +120,21 @@ func main() {
 			updateOutput1("\nRunning John Wallis...\n\n")
 			go func(done chan bool) { // ::: go func now takes an argument
 				defer func() {       // ::: new defer func with global calculating flag set 
-					calculating = false // this does not appear to work 
+					calculating1 = false // this does not appear to work 
 					updateOutput1("Calculation definitely finished; possibly aborted\n")
 				}()
-						fmt.Printf("here before JohnWallisBtn1 calculating is %t\n", calculating) // this executes 
+						fmt.Printf("here before JohnWallisBtn1 calculating is %t\n", calculating1) // this executes 
 				pie = JohnWallis(updateOutput1, done) // ::: func < - - - - - - - - - - - - - < -
-						fmt.Printf("here after JohnWallisBtn1 calculating is %t\n", calculating) // this does not execute, not does the first line in JohnWallis()
+						fmt.Printf("here after JohnWallisBtn1 calculating is %t\n", calculating1) // this does not execute, not does the first line in JohnWallis()
 						
 					current := outputLabel1.Text
 					outputLabel1.SetText(current + fmt.Sprintf("\n\nπ ≈ %.11f\n", pie))
-				calculating = false
+				calculating1 = false
 				for _, btn := range buttons1 {
 					btn.Enable()
 				}
 			}(currentDone)
-			fmt.Printf("here at the end of JohnWallisBtn1 calculating is %t\n", calculating) // this executes 
+			fmt.Printf("here at the end of JohnWallisBtn1 calculating is %t\n", calculating1) // this executes 
 		},
 	)
 /*
@@ -153,15 +151,15 @@ func main() {
 		
 		func() {
 			var spigotDigits int = 1460 // to resolve a scoping issue 
-			if calculating {
+			if calculating1 {
 				return
 			}
-			calculating = true
+			calculating1 = true
 			for _, btn := range buttons1 {
 				btn.Disable()
 			}
 			for _, btn := range spigotBut { // Refer to the comments in the initial assignment and creation of archimedesBtn1
-				calculating = true
+				calculating1 = true
 				btn.Enable()
 			}
 			currentDone = make(chan bool) // ::: New channel per run
@@ -190,11 +188,11 @@ func main() {
 						
 						go func(done chan bool) { // ::: go func now takes an argument
 							defer func() {       // ::: new defer func with global calculating flag set 
-								calculating = false // this does not appear to work 
+								calculating1 = false // this does not appear to work 
 								updateOutput1("\nCalculation definitely finished; possibly aborted\n")
 							}()
 							TheSpigot(updateOutput1, spigotDigits, done) // ::: func < - - - - - - - - - - - - - < -  NOT AMENABLE TO KILLING VIA A DONE CHANNEL 
-							calculating = false
+							calculating1 = false
 							for _, btn := range buttons1 {
 								btn.Enable()
 							}
@@ -205,7 +203,7 @@ func main() {
 						for _, btn := range buttons1 {
 							btn.Enable()
 						}
-						calculating = false // ::: this is the trick to allow others to run after the dialog is canceled/dismissed.
+						calculating1 = false // ::: this is the trick to allow others to run after the dialog is canceled/dismissed.
 					}
 				},
 			)
@@ -225,15 +223,15 @@ func main() {
 		func() {
 			// 
 			var chudDigits int
-				if calculating {
+				if calculating1 {
 					return
 				}
-				calculating = true
+				calculating1 = true
 				for _, btn := range buttons1 {
 					btn.Disable()
 				}
 				for _, btn := range chudBut { 
-					calculating = true 
+					calculating1 = true 
 					btn.Enable() 
 				}
 			currentDone = make(chan bool) // ::: New channel per run
@@ -241,28 +239,33 @@ func main() {
 	
 			showCustomEntryDialog(
 				"Input Desired number of digits",
-				"Any number less than 49,999",
+				"Any number less than 1,000,002", // 9,999
 				func(input string) {
+					updateOutput1(fmt.Sprintf("\nThe user entered: %s\n\n", input))
 					if input != "" { // This if-else is part of the magic that allows us to dismiss a dialog and allow others to run after the dialog is canceled/dismissed.
-						input = removeCommasAndPeriods(input) // allow user to enter a number with a comma
+						input = removeCommasAndPeriods(input) // allow user to enter a number with one or more commas or periods 
+						updateOutput1(fmt.Sprintf("\n\ninput was %s\n\n", input)) // debug
 						val, err := strconv.Atoi(input)
 						if err != nil {
 							fmt.Println("Error converting input:", err)
-							updateOutput1("Invalid input, using default 49,000 digits")
-						} else if val <= 0 {
-							updateOutput1("Input must be positive, using default 49000 digits")
-						} else if val > 50000 {
-							updateOutput1("Input must be less than 50,000 -- using default of 49,000 digits")
+							updateOutput1("Invalid input, using default 8,999 digits")
+							chudDigits = 8999
+						} else if val <= 1 {
+							updateOutput1("Input must be positive, using default 5,000 digits")
+							chudDigits = 5000
+						} else if val > 1000001 { // 1,000,001
+							updateOutput1("Input must be less than 1,000,002 -- using default of 8,999 digits")
+							chudDigits = 8999
 						} else {
-							chudDigits = val
+							chudDigits = val // if and only if val entered is within range 
 						}
-						go func(done chan bool) { // ::: go func now takes an argument
-							defer func() {       // ::: new defer func with global calculating flag set 
-								calculating = false // this does not appear to work 
+						go func(done chan bool) { 
+							defer func() { 
+								calculating1 = false // this does not appear to work 
 								updateOutput1("Calculation definitely finished; possibly aborted\n")
 							}()
-							chudnovskyBig(updateOutput1, chudDigits, done) // ::: func < - - - - - - - - - - - - - < -  NOT AMENABLE TO KILLING VIA A DONE CHANNEL 
-							calculating = false
+							chudnovskyBig(chudDigits, done)
+							calculating1 = false
 							for _, btn := range buttons1 {
 								btn.Enable()
 							}
@@ -273,7 +276,7 @@ func main() {
 							for _, btn := range buttons1 {
 								btn.Enable()
 							}
-							calculating = false // ::: this is the trick to allow others to run after the dialog is canceled/dismissed.
+							calculating1 = false // ::: this is the trick to allow others to run after the dialog is canceled/dismissed.
 					}
 				},
 			)
@@ -293,15 +296,15 @@ func main() {
 
 		func() {
 			var MontDigits string
-			if calculating {
+			if calculating1 {
 				return
 			}
-			calculating = true
+			calculating1 = true
 			for _, btn := range buttons1 {
 				btn.Disable()
 			}
 			for _, btn := range montBut {
-				calculating = true
+				calculating1 = true
 				btn.Enable()
 			}
 			currentDone = make(chan bool) // ::: New channel per run
@@ -326,11 +329,11 @@ func main() {
 						}
 						go func(done chan bool) { // ::: go func now takes an argument
 							defer func() {       // ::: new defer func with global calculating flag set 
-								calculating = false // this does not appear to work 
+								calculating1 = false // this does not appear to work 
 								updateOutput1("Calculation definitely finished; possibly aborted\n")
 							}()
 							Monty(updateOutput1, MontDigits, done) // ::: func < - - - - - - - - - - - - < -  NOT AMENABLE TO KILLING VIA A DONE CHANNEL 
-							calculating = false
+							calculating1 = false
 							for _, btn := range buttons1 {
 								btn.Enable()
 							}
@@ -341,7 +344,7 @@ func main() {
 						for _, btn := range buttons1 {
 							btn.Enable()
 						}
-						calculating = false // ::: this is the trick to allow others to run after the dialog is canceled/dismissed.
+						calculating1 = false // ::: this is the trick to allow others to run after the dialog is canceled/dismissed.
 					}
 				},
 			)
@@ -360,26 +363,26 @@ func main() {
 		color.RGBA{100, 255, 100, 215},
 		
 		func() {
-			if calculating {
+			if calculating1 {
 				return
 			}
-			calculating = true
+			calculating1 = true
 			for _, btn := range buttons1 {
 				btn.Disable()
 			}
 			for _, btn := range gaussBut { // Refer to the comments in the initial assignment and creation of archimedesBtn1
-				calculating = true
+				calculating1 = true
 				btn.Enable()
 			}
 			currentDone = make(chan bool) // ::: New channel per run
 			updateOutput1("\nRunning Gauss...\n\n")
 			go func(done chan bool) { // ::: go func now takes an argument
 				defer func() {       // ::: new defer func with global calculating flag set 
-					calculating = false // this does not appear to work 
+					calculating1 = false // this does not appear to work 
 					updateOutput1("Calculation definitely finished; possibly aborted\n")
 				}()
 				Gauss_Legendre(updateOutput1, done) // ::: func < - - - - - - - - - - - - - < -
-				calculating = false
+				calculating1 = false
 				for _, btn := range buttons1 {
 					btn.Enable()
 				}
@@ -399,26 +402,26 @@ func main() {
 		
 		func() {
 			// WallisParent <- "Dick"
-			if calculating {
+			if calculating1 {
 				return
 			}
-			calculating = true
+			calculating1 = true
 			for _, btn := range buttons1 {
 				btn.Disable()
 			}
 			for _, btn := range customBut { // Refer to the comments in the initial assignment and creation of archimedesBtn1
-				calculating = true
+				calculating1 = true
 				btn.Enable()
 			}
 			currentDone = make(chan bool) // ::: New channel per run
 			updateOutput1("\nRunning Custom Series ...\n\n")
 			go func(done chan bool) { // ::: go func now takes an argument
 				defer func() {       // ::: new defer func with global calculating flag set 
-					calculating = false // this does not appear to work 
+					calculating1 = false // this does not appear to work 
 					updateOutput1("Calculation definitely finished; possibly aborted\n")
 				}()
 				CustomSeries(updateOutput1, done) // ::: probably want to add a done channel to this one
-				calculating = false
+				calculating1 = false
 				for _, btn := range buttons1 {
 					btn.Enable()
 				}
@@ -437,26 +440,26 @@ func main() {
 		color.RGBA{110, 110, 255, 185},
 		
 		func() {
-			if calculating {
+			if calculating1 {
 				return
 			}
-			calculating = true
+			calculating1 = true
 			for _, btn := range buttons1 {
 				btn.Disable()
 			}
 			for _, btn := range gottfieBut { // Refer to the comments in the initial assignment and creation of archimedesBtn1
-				calculating = true
+				calculating1 = true
 				btn.Enable()
 			}
 			currentDone = make(chan bool) // ::: New channel per run
 			updateOutput1("\nRunning Gregory-Leibniz...\n\n")
 			go func(done chan bool) { // ::: go func now takes an argument
 				defer func() {       // ::: new defer func with global calculating flag set 
-					calculating = false // this does not appear to work 
+					calculating1 = false // this does not appear to work 
 					updateOutput1("Calculation definitely finished; possibly aborted\n")
 				}()
 				GregoryLeibniz(updateOutput1, done) // ::: probably want to add a done channel to this one
-				calculating = false
+				calculating1 = false
 				for _, btn := range buttons1 {
 					btn.Enable()
 				}
@@ -506,17 +509,17 @@ func main() {
 		fyne.NewMenuItem("Begin the ScoreBoard of Pi", func() {
 			
 			// dialog.ShowInformation("ScoreBoard", "Use Abort in Menu\nPrior to dismissing with OK", window1)
-			if calculating {
+			if calculating0 {
 				fmt.Println("Calculation already in progress")
 				return
 			}
-			calculating = true
+			calculating0 = true
 			currentDone = make(chan bool)
 			termsCount = 0
 
 			go func(done chan bool) {
 				defer func() {
-					calculating = false
+					calculating0 = false
 					terminalDisplay.SetText(fmt.Sprintf("Terminal Output:\n\nCalculation stopped.\nFinal Pi: %.11f\nTerms: %d", <-pichan, termsCount))
 				}()
 
@@ -551,6 +554,28 @@ func main() {
 				fmt.Println(err)
 				return
 			}		}),
+
+		fyne.NewMenuItem("verify pi", func() {
+			file1 := "/Users/quasar/grokTriesAgain/big_pie_is_in_here.txt" // Replace with your first file path
+			file2 := "/Users/quasar/grokTriesAgain/piOneMil.txt" // Replace with your second file path
+
+			count, err := compareFiles(file1, file2)
+			if err != nil {
+				fmt.Println("Error:", err)
+			}
+			updateOutput1(fmt.Sprintf("\n\nMatched %d characters in sequence from the start.\n", count))
+					}),
+			
+			/*
+				file1 := "/Users/quasar/grokTriesAgain/big_pie_is_in_here.txt" // Replace with your first file path
+				file2 := "/Users/quasar/grokTriesAgain/piOneMil.txt" // Replace with your second file path
+
+				count, err := compareFiles(file1, file2)
+				if err != nil {
+					fmt.Println("Error:", err)
+				}
+				updateOutput1(fmt.Sprintf("\n\nMatched %d characters in sequence from the start.\n", count))
+			 */
 	)
 	/* ::: more: 
 	select { // select is a concurrency-specific channel-only construct used to handle multiple channel operations, see explanation in second comment-block below.

@@ -41,7 +41,7 @@ func CustomSeries(fyneFunc func(string), done chan bool) {
 		case <-done: // ::: here an attempt is made to read from the channel (a closed channel can be read from successfully; but what is read will be the null/zero value of the type of chan (0, false, "", 0.0, etc.)
 			// in the case of this particular channel (which is of type bool) we get the value false from having received from the channel when it is already closed. 
 			// ::: if the channel known by the moniker "done" is already closed, that/it is to be interpreted as the abort signal by all listening processes. 
-			fmt.Printf("\nhere in Goroutine CustomSeries for-loop (1 of 1) calculating is %t\n", calculating)
+			fmt.Printf("\nhere in Goroutine CustomSeries for-loop (1 of 1) calculating is %t\n", calculating1) // debug
 			fmt.Println("Goroutine CustomSeries for-loop (1 of 1) is being terminated by select case finding the done channel to be already closed")
 			return // Exit the goroutine
 		default:
@@ -126,10 +126,13 @@ func CustomSeries(fyneFunc func(string), done chan bool) {
 		}
 	}
 	}
-	// ::: Prepare to exit the Gregory Leibniz method function
-	calculating = false // Allow another method to be selected.
-	for _, btn := range buttons1 { // ok to only Enable buttons1, because I expect to only ever execute this from window1
-		btn.Enable() // ::: Enable
-	}
+	/*
+		// ::: Prepare to exit the Gregory Leibniz method function
+		calculating1 = false // Allow another method to be selected.
+		for _, btn := range buttons1 { // ok to only Enable buttons1, because I expect to only ever execute this from window1
+			btn.Enable() // ::: Enable
+		}
+	 */
+
 	// written entirely by Richard Woolley
 }

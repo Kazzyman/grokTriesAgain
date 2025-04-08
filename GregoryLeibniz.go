@@ -224,10 +224,12 @@ func GregoryLeibniz(fyneFunc func(string), done chan bool) {
 			}
 			}
 		}
-		
-	// ::: Prepare to exit the Gottfried method function
-	calculating = false // Allow another method to be selected.
-	for _, btn := range buttons1 { // ok to only Enable buttons1, because I expect to only ever execute this from window1
-		btn.Enable() // ::: Enable
-	}
+		/*
+			// ::: Prepare to exit the Gottfried method function
+			calculating1 = false // Allow another method to be selected.
+			for _, btn := range buttons1 { // ok to only Enable buttons1, because I expect to only ever execute this from window1
+				btn.Enable() // ::: Enable
+			}
+		 */
+
 } // written entirely by Richard Woolley

@@ -46,7 +46,7 @@ func createWindow2() fyne.Window {
 	}
 	// ::: Dual input dialog < - - - - - - - - - - - - - - - - - - - - - - - - < -
 	getDualInput2 := func(title, prompt1, prompt2, default1, default2 string, callback func(string, string, bool)) {
-		calculating = true
+		calculating2 = true
 		for _, btn := range buttons2 {
 			btn.Disable()
 		}
@@ -58,7 +58,7 @@ func createWindow2() fyne.Window {
 			func() {
 				callback(entry1.Text, entry2.Text, true)
 				dialog.NewInformation("Submitted", "Values submitted", window2).Hide() // Hack to close dialog
-				calculating = true
+				calculating2 = true
 				for _, btn := range buttons2 {
 					btn.Disable()
 				}
@@ -78,7 +78,7 @@ func createWindow2() fyne.Window {
 	// ::: Buttons2
 
 	// This button handler is different from the other ones here in that it gets its input from a widget.NewEntry() 
-	RootsBtn2 := SetupRootsDemo(mgr, done, radicalEntry, workEntry) // ::: just one line here, for this math button (see SetupRootsDemo)
+	RootsBtn2 := SetupRootsDemo(mgr, radicalEntry, workEntry) // ::: just one line here, for this math button (see SetupRootsDemo)
 	/*
 		.
 		.
@@ -89,21 +89,21 @@ func createWindow2() fyne.Window {
 			"output up to 26 digits of pi",
 		color.RGBA{255, 255, 100, 235},
 		func() {
-			if calculating {
+			if calculating2 {
 				return
 			}
-			calculating = true
+			calculating2 = true
 			for _, btn := range buttons2 {
 				btn.Disable()
 			}
 			for _, btn := range nilaBut2 { // Refer to the comments in the initial assignment and creation of archimedesBtn1
-				calculating = true
+				calculating2 = true
 				btn.Enable()
 			}
 			getDualInput2("Input Required", "Number of iterations (suggest 300,000 -> 30,000,000  -> 300,000,000):", "Precision (suggest 128):",
 				"30000000", "128", // 30,000,000
 				func(itersStr, precStr string, ok bool) {
-					calculating = true
+					calculating2 = true
 					for _, btn := range buttons2 {
 						btn.Disable()
 					}
@@ -131,7 +131,7 @@ func createWindow2() fyne.Window {
 						precision = val2
 					}
 					go NilakanthaBig(updateOutput2, iters, precision, done) // ::: probably want to add a done channel to this one
-					calculating = false
+					calculating2 = false
 					for _, btn := range buttons2 {
 						btn.Enable()
 					}
@@ -141,15 +141,15 @@ func createWindow2() fyne.Window {
 	// ::: Chud is temp here, Bailey concur will go here eventually -- SO DONT WORRY ABOUT FIXING ITS ISSUES !!!!
 	ChudnovskyBtn2 := NewColoredButton("chudnovsky -- takes input", color.RGBA{255, 255, 100, 235},
 		func() {
-			if calculating {
+			if calculating2 {
 				return
 			}
-			calculating = true
+			calculating2 = true
 			for _, btn := range buttons2 {
 				btn.Disable()
 			}
 			for _, btn := range chudBut2 { // Refer to the comments in the initial assignment and creation of archimedesBtn1
-				calculating = true
+				calculating2 = true
 				btn.Enable()
 			}
 			getSingleInput2("Input Required", "Enter the number of digits for the chudnovsky calculation (e.g., 46):", "46",
@@ -172,12 +172,12 @@ func createWindow2() fyne.Window {
 						chudDigits = val
 					}
 					go func() {
-						chudnovskyBig(updateOutput2, chudDigits, done)
-						calculating = false
+						chudnovskyBig(chudDigits, done)
+						calculating2 = false
 						for _, btn := range buttons2 {
 							btn.Enable()
 						}
-						calculating = false // ::: this is the trick to allow others to run after the dialog is canceled/dismissed.
+						calculating2 = false // ::: this is the trick to allow others to run after the dialog is canceled/dismissed.
 					}()
 				})
 		})
@@ -196,15 +196,15 @@ func createWindow2() fyne.Window {
 
 		func() {
 			var bbpMaxDigits int = 2000 // to resolve a scoping issue 
-			if calculating {
+			if calculating2 {
 				return
 			}
-			calculating = true
+			calculating2 = true
 			for _, btn := range buttons2 {
 				btn.Disable()
 			}
 			for _, btn := range bbpMaxBut2 { // Refer to the comments in the initial assignment and creation of archimedesBtn1
-				calculating = true
+				calculating2 = true
 				btn.Enable()
 			}
 			currentDone = make(chan bool, 1) // ::: New channel per run BUFFER SIZE ADDED TO ELIMINATE BLOCKING ???
@@ -233,8 +233,8 @@ func createWindow2() fyne.Window {
 
 						go func(done chan bool) { 
 							defer func() { 
-								calculating = false
-								updateOutput2("\nCalculation definitely finished; one way or another.\n")
+								calculating2 = false
+								updateOutput2("\ndefer func() {calculating2 = false} completed.\n")
 							}()
 							bbpMax(updateOutput2, bbpMaxDigits, done) // near the end of this function I do: done <- true|false // trying to signal a clean and complete exit, but neither works as intended ...
 								for _, btn := range buttons2 {
@@ -257,7 +257,7 @@ func createWindow2() fyne.Window {
 						for _, btn := range buttons2 {
 							btn.Enable()
 						}
-						calculating = false // ::: this is the trick to allow others to run after the dialog is canceled/dismissed.
+						calculating2 = false // ::: this is the trick to allow others to run after the dialog is canceled/dismissed.
 					}
 				},
 			)
