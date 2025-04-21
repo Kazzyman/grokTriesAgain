@@ -29,6 +29,10 @@ func SetupRootsDemo(mgr *TrafficManager, radicalEntry, workEntry *widget.Entry) 
 			trimmedRadicalString := strings.TrimRight(radicalEntry.Text, " ")
 			radical, err := strconv.Atoi(trimmedRadicalString)
 			if err != nil || (radical != 2 && radical != 3) {
+				if radical == 0 {
+					updateOutput2("\nPlease read the usage instructions on the button that you clicked\n")
+					return
+				}
 				updateOutput2("Invalid radical: enter 2 or 3\n")
 				return
 			}
